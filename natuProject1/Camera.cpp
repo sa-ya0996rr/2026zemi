@@ -1,76 +1,200 @@
 #include "Camera.h"
 
 
+
+// =========================================
 // コンストラクタ
+// =========================================
+
 Camera::Camera()
 {
+
     position.x = 0;
+
     position.y = 0;
 
-    // 移動範囲
+
+
     minX = 0;
-    maxX = 10000;
+
+    minY = 0;
+
+
+
+    maxX = 0;
+
+    maxY = 0;
+
 }
 
 
+
+// =========================================
 // デストラクタ
+// =========================================
+
 Camera::~Camera()
 {
 
 }
 
 
-// 更新処理
-void Camera::Update(Vector2 playerPosition)
+
+// =========================================
+// ステージサイズ設定
+// =========================================
+
+void Camera::SetStageSize(
+    int width,
+    int height
+)
 {
-    // プレイヤーを画面中央付近に置く
-    position.x =
-        playerPosition.x - SCREEN_WIDTH / 2;
 
 
-    position.y =
-        playerPosition.y - SCREEN_HEIGHT / 2;
+    maxX =
+        width - SCREEN_WIDTH;
 
 
 
-    // 左端制限
+    maxY =
+        height - SCREEN_HEIGHT;
+
+
+
+    if (maxX < 0)
+    {
+
+        maxX = 0;
+
+    }
+
+
+
+    if (maxY < 0)
+    {
+
+        maxY = 0;
+
+    }
+
+}
+
+
+
+// =========================================
+// 更新
+// =========================================
+
+void Camera::Update(
+    Vector2 playerPosition
+)
+{
+
+
+    float targetX =
+        playerPosition.x -
+        SCREEN_WIDTH / 2;
+
+
+
+    float targetY =
+        playerPosition.y -
+        SCREEN_HEIGHT / 2;
+
+
+
+
+    position.x +=
+        (targetX - position.x)
+        *
+        CAMERA_SPEED;
+
+
+
+    position.y +=
+        (targetY - position.y)
+        *
+        CAMERA_SPEED;
+
+
+
+
     if (position.x < minX)
     {
+
         position.x = minX;
+
     }
 
 
-    // 右端制限
+
     if (position.x > maxX)
     {
+
         position.x = maxX;
+
     }
 
 
-    // 上下制限
-    if (position.y < 0)
+
+
+    if (position.y < minY)
     {
-        position.y = 0;
+
+        position.y = minY;
+
     }
+
+
+
+    if (position.y > maxY)
+    {
+
+        position.y = maxY;
+
+    }
+
+
+
 }
 
 
-// X座標変換
-int Camera::GetScreenX(float worldX)
+
+// =========================================
+// 画面座標変換
+// =========================================
+
+int Camera::GetScreenX(
+    float worldX
+)
 {
-    return (int)(worldX - position.x);
+
+    return (int)
+        (worldX - position.x);
+
 }
 
 
-// Y座標変換
-int Camera::GetScreenY(float worldY)
+
+int Camera::GetScreenY(
+    float worldY
+)
 {
-    return (int)(worldY - position.y);
+
+    return (int)
+        (worldY - position.y);
+
 }
 
 
-// カメラ位置取得
+
+// =========================================
+// 座標取得
+// =========================================
+
 Vector2 Camera::GetPosition()
 {
+
     return position;
+
 }

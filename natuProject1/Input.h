@@ -3,12 +3,12 @@
 #define INPUT_H
 
 
-// 入力管理クラス
 class Input
 {
+
 public:
 
-    // 初期化
+    // コンストラクタ
     Input();
 
 
@@ -16,7 +16,8 @@ public:
     void Update();
 
 
-    // キーが押されているか
+    // キー入力取得
+
     bool Right();
 
     bool Left();
@@ -26,11 +27,14 @@ public:
     bool Escape();
 
 
+
 private:
 
-    // キー状態
+    // 現在のキー状態
     char key[256];
 
 };
+
+
 
 #endif

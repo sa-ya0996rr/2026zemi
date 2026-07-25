@@ -1,122 +1,258 @@
 #include "Stage.h"
+
+#include "Camera.h"
+#include "Image.h"
+
 #include <DxLib.h>
 
 
+
+// =========================================
 // コンストラクタ
+// =========================================
+
 Stage::Stage()
 {
-    mapWidth = 40;
-    mapHeight = 20;
 
 
-    // マップ初期化
-    for (int y = 0; y < mapHeight; y++)
+    for (int y = 0; y < MAP_HEIGHT; y++)
     {
-        for (int x = 0; x < mapWidth; x++)
+
+        for (int x = 0; x < MAP_WIDTH; x++)
         {
+
             map[y][x] = 0;
+
         }
+
     }
 
 
-    // 床を作成
-    for (int x = 0; x < mapWidth; x++)
+
+    // 地面
+
+    for (int x = 0; x < MAP_WIDTH; x++)
     {
+
         map[18][x] = 1;
+
         map[19][x] = 1;
+
     }
 
 
-    // 足場を作成
+
+    // 足場
+
     map[15][5] = 1;
     map[15][6] = 1;
     map[15][7] = 1;
 
+
+
     map[12][10] = 1;
     map[12][11] = 1;
     map[12][12] = 1;
+
+
 }
 
 
+
+// =========================================
 // デストラクタ
+// =========================================
+
 Stage::~Stage()
 {
 
 }
 
 
-// 更新処理
+
+// =========================================
+// 更新
+// =========================================
+
 void Stage::Update()
 {
 
 }
 
 
-// 描画処理
-void Stage::Draw()
+
+// =========================================
+// 描画
+// =========================================
+
+void Stage::Draw(
+    Camera& camera,
+    Image& image
+)
 {
-    for (int y = 0; y < mapHeight; y++)
+
+    for (int y = 0; y < MAP_HEIGHT; y++)
     {
-        for (int x = 0; x < mapWidth; x++)
+
+        for (int x = 0; x < MAP_WIDTH; x++)
         {
+
             if (map[y][x] == 1)
             {
-                DrawTile(x, y);
+
+                DrawTile(
+                    x,
+                    y,
+                    camera,
+                    image
+                );
+
             }
+
         }
+
     }
+
 }
 
 
-// ブロック描画
-void Stage::DrawTile(int x, int y)
+
+// =========================================
+// タイル描画
+// =========================================
+
+void Stage::DrawTile(
+    int x,
+    int y,
+    Camera& camera,
+    Image& image
+)
 {
-    DrawBox(
-        x * TILE_SIZE,
-        y * TILE_SIZE,
-        x * TILE_SIZE + TILE_SIZE,
-        y * TILE_SIZE + TILE_SIZE,
-        GetColor(0, 200, 0),
-        TRUE
-    );
-}
+
+    int worldX =
+        x * TILE_SIZE;
 
 
-// 当たり判定
-bool Stage::CheckCollision(Rect playerRect)
-{
-    int leftTile =
-        (int)(playerRect.left / TILE_SIZE);
-
-    int rightTile =
-        (int)(playerRect.right / TILE_SIZE);
-
-    int topTile =
-        (int)(playerRect.top / TILE_SIZE);
-
-    int bottomTile =
-        (int)(playerRect.bottom / TILE_SIZE);
+    int worldY =
+        y * TILE_SIZE;
 
 
 
-    for (int y = topTile; y <= bottomTile; y++)
+    int handle =
+        image.GetTileImage();
+
+
+
+    if (handle == -1)
     {
-        for (int x = leftTile; x <= rightTile; x++)
+
+        DrawBox(
+
+            camera.GetScreenX(worldX),
+
+            camera.GetScreenY(worldY),
+
+
+            camera.GetScreenX(
+                worldX + TILE_SIZE
+            ),
+
+            camera.GetScreenY(
+                worldY + TILE_SIZE
+            ),
+
+
+            GetColor(0, 200, 0),
+
+            TRUE
+
+        );
+
+
+        return;
+
+    }
+
+
+
+    DrawGraph(
+
+        camera.GetScreenX(worldX),
+
+        camera.GetScreenY(worldY),
+
+
+        handle,
+
+        TRUE
+
+    );
+
+
+}
+
+
+
+// =========================================
+// 当たり判定
+// =========================================
+
+bool Stage::CheckCollision(
+    Rect rect
+)
+{
+
+
+    int left =
+        (int)(rect.left / TILE_SIZE);
+
+
+    int right =
+        (int)(rect.right / TILE_SIZE);
+
+
+
+    int top =
+        (int)(rect.top / TILE_SIZE);
+
+
+    int bottom =
+        (int)(rect.bottom / TILE_SIZE);
+
+
+
+
+
+    for (int y = top; y <= bottom; y++)
+    {
+
+        for (int x = left; x <= right; x++)
         {
-            if (x < 0 || x >= mapWidth ||
-                y < 0 || y >= mapHeight)
+
+            if (x < 0 ||
+                x >= MAP_WIDTH ||
+                y < 0 ||
+                y >= MAP_HEIGHT)
             {
                 continue;
             }
 
 
+
             if (map[y][x] == 1)
             {
+
                 return true;
+
             }
+
+
         }
+
     }
 
 
+
     return false;
+
 }

@@ -2,46 +2,69 @@
 #ifndef STAGE_H
 #define STAGE_H
 
+
 #include "Common.h"
 
 
-// ステージ管理クラス
+class Camera;
+class Image;
+
+
+
 class Stage
 {
+
 public:
 
-    // コンストラクタ
+
     Stage();
 
-    // デストラクタ
+
     ~Stage();
 
 
-    // 更新処理
+
     void Update();
 
 
-    // 描画処理
-    void Draw();
+
+    void Draw(
+        Camera& camera,
+        Image& image
+    );
 
 
-    // 床との当たり判定
-    bool CheckCollision(Rect playerRect);
+
+    bool CheckCollision(
+        Rect rect
+    );
+
 
 
 private:
 
-    // マップデータ
-    int map[20][40];
+
+    static constexpr int MAP_WIDTH = 40;
+
+    static constexpr int MAP_HEIGHT = 20;
 
 
-    // マップサイズ
-    int mapWidth;
-    int mapHeight;
+
+    int map[MAP_HEIGHT][MAP_WIDTH];
 
 
-    // ブロック描画
-    void DrawTile(int x, int y);
+
+    void DrawTile(
+        int x,
+        int y,
+        Camera& camera,
+        Image& image
+    );
+
+
+
 };
+
+
 
 #endif
