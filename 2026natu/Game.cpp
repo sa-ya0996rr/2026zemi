@@ -3,792 +3,410 @@
 #include "Block.h"
 #include "Player.h"
 #include "Draw.h"
-
-#include <cstdlib>
-#include <ctime>
-
-using namespace std;
-
-
-// ==================================================
-// 関数の宣言
-// ==================================================
-
-void MakeFavoriteFood();
-
-void CheckFavoriteFood();
-
-void AddNewAnimal();
-
-void StartGravity();
-
-void UpdateFalling();
-
-void StartNewBlock();
-
-void UpdateNewBlock();
-
-
-// ==================================================
-// ゲーム情報
-// ==================================================
-
-int turn = 0;
-
-int score = 0;
-
-bool gameOver = false;
-
-
-// ==================================================
-// ゲーム状態
-//
-// 0 = プレイヤー操作
-// 1 = 重力で落下
-// 2 = 新しいブロックが出てくる
-// ==================================================
+#include <stdlib.h>
+#include <time.h>
 
 int gameState = 0;
-
-
-// ==================================================
-// アニメーション速度
-// ==================================================
+int turn = 0;
+int score = 0;
+bool gameOver = false;
 
 const float FALL_SPEED = 4.0f;
-
+const float RISE_SPEED = 2.0f;
 const float NEW_BLOCK_SPEED = 2.0f;
 
+int newBlockIndex = -1;
 
-// ==================================================
-// 好物を出す
-// ==================================================
+void StartGravity();
+void UpdateFalling();
+void StartRising();
+void UpdateRising();
+void StartNewBlock();
+void UpdateNewBlock();
+void AddNewAnimal();
+void MakeFavoriteFood();
+void CheckFavoriteFood();
 
 void MakeFavoriteFood()
 {
-    // ------------------------------------------
-    // 3ターン終了するまでは出さない
-    // ------------------------------------------
-
-    if (turn < 3)
-    {
-        return;
-    }
-
-
-    // ------------------------------------------
-    // ランダムなタイミング
-    // 5回に1回くらい
-    // ------------------------------------------
-
-    if (rand() % 5 != 0)
-    {
-        return;
-    }
-
-
-    // ------------------------------------------
-    // 羊か牛
-    // ------------------------------------------
-
-    int animal = rand() % 2;
-
-    char food;
-
-
-    if (animal == 0)
-    {
-        // 羊の好物
-        food = 'W';
-    }
-    else
-    {
-        // 牛の好物
-        food = 'T';
-    }
-
-
-    // ------------------------------------------
-    // ランダムな横位置
-    // ------------------------------------------
+    if (turn < 3) return;
+    if (rand() % 5 != 0) return;
 
     int x = rand() % WIDTH;
 
+    if (rand() % 2 == 0)
+        AddBlock('W', x, HEIGHT - 1, 1);
+    else
+        AddBlock('T', x, HEIGHT - 1, 1);
 
-    // ------------------------------------------
-    // 好物は1マス
-    // ------------------------------------------
-
-    AddBlock(
-        food,
-        x,
-        HEIGHT - 1,
-        1);
-
-
-    int number =
-        blockCount - 1;
-
-
-    // ------------------------------------------
-    // 画面の下から出現
-    // ------------------------------------------
-
-    blockDrawY[number] =
-        (float)(
-            BOARD_Y +
-            HEIGHT * CELL
-            );
-
-
+    newBlockIndex = blockCount - 1;
+    blockDrawY[newBlockIndex] = (float)(BOARD_Y + HEIGHT * CELL);
     newBlockRising = true;
 }
-
-
-// ==================================================
-// 好物判定
-// ==================================================
 
 void CheckFavoriteFood()
 {
-    for (int i = 0;
-        i < blockCount;
-        i++)
+    for (int i = 0; i < blockCount; i++)
     {
-        if (blockExist[i] == false)
+        if (!blockExist[i]) continue;
+
+        if (blockType[i] == 'W')
         {
-            continue;
-        }
-
-
-        // --------------------------------------
-        // 好物以外は無視
-        // --------------------------------------
-
-        if (blockType[i] != 'W' &&
-            blockType[i] != 'T')
-        {
-            continue;
-        }
-
-
-        for (int j = 0;
-            j < blockCount;
-            j++)
-        {
-            if (i == j)
+            for (int j = 0; j < blockCount; j++)
             {
-                continue;
-            }
+                if (!blockExist[j]) continue;
+                if (blockType[j] != 'S') continue;
 
-
-            if (blockExist[j] == false)
-            {
-                continue;
-            }
-
-
-            // ==================================
-            // 小麦 → 羊
-            // ==================================
-
-            if (blockType[i] == 'W' &&
-                blockType[j] == 'S')
-            {
-                if (blockY[i] + 1 ==
-                    blockY[j])
+                if (blockY[i] == blockY[j] - 1)
                 {
-                    if (IsOverlapping(
-                        blockX[i],
-                        blockLength[i],
-                        blockX[j],
-                        blockLength[j]))
+                    if (IsOverlapping(blockX[i], blockLength[i],
+                        blockX[j], blockLength[j]))
                     {
                         score += 100;
-
                         blockExist[i] = false;
+                        break;
                     }
                 }
             }
+        }
 
-
-            // ==================================
-            // とうもろこし → 牛
-            // ==================================
-
-            if (blockType[i] == 'T' &&
-                blockType[j] == 'C')
+        if (blockType[i] == 'T')
+        {
+            for (int j = 0; j < blockCount; j++)
             {
-                if (blockY[i] + 1 ==
-                    blockY[j])
+                if (!blockExist[j]) continue;
+                if (blockType[j] != 'C') continue;
+
+                if (blockY[i] == blockY[j] - 1)
                 {
-                    if (IsOverlapping(
-                        blockX[i],
-                        blockLength[i],
-                        blockX[j],
-                        blockLength[j]))
+                    if (IsOverlapping(blockX[i], blockLength[i],
+                        blockX[j], blockLength[j]))
                     {
                         score += 100;
-
                         blockExist[i] = false;
+                        break;
                     }
                 }
             }
         }
     }
 }
-
-
-// ==================================================
-// 新しい動物を追加
-// ==================================================
 
 void AddNewAnimal()
 {
-    // ------------------------------------------
-    // 羊か牛をランダム
-    // ------------------------------------------
+    char type;
 
-    int randomAnimal =
-        rand() % 2;
-
-    char animal;
-
-
-    if (randomAnimal == 0)
-    {
-        animal = 'S';
-    }
+    if (rand() % 2 == 0)
+        type = 'S';
     else
-    {
-        animal = 'C';
-    }
+        type = 'C';
 
+    int length = rand() % 4 + 1;
+    int x = rand() % (WIDTH - length + 1);
 
-    // ------------------------------------------
-    // 1～4マス
-    // ------------------------------------------
+    AddBlock(type, x, HEIGHT - 1, length);
 
-    int length =
-        rand() % 4 + 1;
-
-
-    // ------------------------------------------
-    // 横位置
-    // ------------------------------------------
-
-    int x =
-        rand() %
-        (WIDTH - length + 1);
-
-
-    // ------------------------------------------
-    // 下から追加
-    // ------------------------------------------
-
-    AddBlock(
-        animal,
-        x,
-        HEIGHT - 1,
-        length);
-
-
-    int number =
-        blockCount - 1;
-
-
-    // ------------------------------------------
-    // 画面の下からスタート
-    // ------------------------------------------
-
-    blockDrawY[number] =
-        (float)(
-            BOARD_Y +
-            HEIGHT * CELL
-            );
-
-
+    newBlockIndex = blockCount - 1;
+    blockDrawY[newBlockIndex] = (float)(BOARD_Y + HEIGHT * CELL);
     newBlockRising = true;
 }
 
-
-// ==================================================
-// 重力開始
-// ==================================================
-
 void StartGravity()
 {
-    bool anyFalling = false;
+    bool someoneFalls = false;
 
-
-    // ------------------------------------------
-    // 全ブロックの落下状態をリセット
-    // ------------------------------------------
-
-    for (int i = 0;
-        i < blockCount;
-        i++)
-    {
-        if (blockExist[i] == false)
-        {
-            continue;
-        }
-
-
+    for (int i = 0; i < blockCount; i++)
         falling[i] = false;
+
+    for (int i = 0; i < blockCount; i++)
+    {
+        if (!blockExist[i]) continue;
+        if (HasSupport(i)) continue;
+        if (blockY[i] >= HEIGHT - 1) continue;
+
+        falling[i] = true;
+        someoneFalls = true;
     }
 
-
-    // ------------------------------------------
-    // 落ちるブロックを探す
-    // ------------------------------------------
-
-    for (int i = 0;
-        i < blockCount;
-        i++)
+    if (someoneFalls)
     {
-        if (blockExist[i] == false)
-        {
-            continue;
-        }
-
-
-        // 一番下なら落ちない
-        if (blockY[i] >= HEIGHT - 1)
-        {
-            continue;
-        }
-
-
-        // 支えがなければ落ちる
-        if (HasSupport(i) == false)
-        {
-            falling[i] = true;
-
-            anyFalling = true;
-        }
+        if (gameState == 4)
+            gameState = 4;
+        else
+            gameState = 1;
     }
-
-
-    // ------------------------------------------
-    // 落ちるブロックがある
-    // ------------------------------------------
-
-    if (anyFalling)
+    else
     {
-        gameState = 1;
-
-        return;
-    }
-
-
-    // ------------------------------------------
-    // すでに全部止まっている
-    //
-    // ★ここで新しいブロックへ
-    // ------------------------------------------
-
-    StartNewBlock();
-}
-
-
-// ==================================================
-// 重力による落下
-// ==================================================
-
-void UpdateFalling()
-{
-    bool stillFalling = false;
-
-
-    // ------------------------------------------
-    // 落下アニメーション
-    // ------------------------------------------
-
-    for (int i = 0;
-        i < blockCount;
-        i++)
-    {
-        if (blockExist[i] == false)
+        if (gameState == 4)
         {
-            continue;
-        }
-
-
-        if (falling[i] == false)
-        {
-            continue;
-        }
-
-
-        // --------------------------------------
-        // 次のマスの位置
-        // --------------------------------------
-
-        float targetY =
-            (float)(
-                BOARD_Y +
-                (blockY[i] + 1) * CELL
-                );
-
-
-        // --------------------------------------
-        // ゆっくり落とす
-        // --------------------------------------
-
-        blockDrawY[i] +=
-            FALL_SPEED;
-
-
-        // --------------------------------------
-        // まだ途中
-        // --------------------------------------
-
-        if (blockDrawY[i] <
-            targetY)
-        {
-            stillFalling = true;
-
-            continue;
-        }
-
-
-        // --------------------------------------
-        // 1マス落ちた
-        // --------------------------------------
-
-        blockDrawY[i] =
-            targetY;
-
-
-        blockY[i]++;
-
-
-        falling[i] = false;
-    }
-
-
-    // ------------------------------------------
-    // まだ落下中
-    // ------------------------------------------
-
-    if (stillFalling)
-    {
-        return;
-    }
-
-
-    // ------------------------------------------
-    // もう一度支えを確認
-    // ------------------------------------------
-
-    bool anotherFalling = false;
-
-
-    for (int i = 0;
-        i < blockCount;
-        i++)
-    {
-        if (blockExist[i] == false)
-        {
-            continue;
-        }
-
-
-        // 一番下
-        if (blockY[i] >= HEIGHT - 1)
-        {
-            falling[i] = false;
-
-            continue;
-        }
-
-
-        // 支えがなければ落ちる
-        if (HasSupport(i) == false)
-        {
-            falling[i] = true;
-
-            anotherFalling = true;
+            gameState = 0;
+            playerMoved = false;
+            playerTurnFinished = false;
         }
         else
         {
+            StartRising();
+        }
+    }
+}
+
+void UpdateFalling()
+{
+    for (int i = 0; i < blockCount; i++)
+    {
+        if (!blockExist[i]) continue;
+        if (!falling[i]) continue;
+
+        int targetY = blockY[i] + 1;
+
+        if (targetY >= HEIGHT)
+        {
+            falling[i] = false;
+            continue;
+        }
+
+        bool canFall = true;
+
+        for (int j = 0; j < blockCount; j++)
+        {
+            if (i == j) continue;
+            if (!blockExist[j]) continue;
+            if (blockY[j] != targetY) continue;
+
+            if (IsOverlapping(blockX[i], blockLength[i],
+                blockX[j], blockLength[j]))
+            {
+                canFall = false;
+                break;
+            }
+        }
+
+        if (!canFall)
+        {
+            falling[i] = false;
+            continue;
+        }
+
+        float targetDrawY = (float)(BOARD_Y + targetY * CELL);
+
+        blockDrawY[i] += FALL_SPEED;
+
+        if (blockDrawY[i] >= targetDrawY)
+        {
+            blockDrawY[i] = targetDrawY;
+            blockY[i] = targetY;
             falling[i] = false;
         }
     }
 
+    bool stillFalling = false;
 
-    // ------------------------------------------
-    // まだ落ちるブロックがある
-    // ------------------------------------------
-
-    if (anotherFalling)
+    for (int i = 0; i < blockCount; i++)
     {
-        gameState = 1;
+        if (!blockExist[i]) continue;
 
-        return;
+        if (falling[i])
+        {
+            stillFalling = true;
+            break;
+        }
     }
 
+    if (stillFalling)
+        return;
 
-    // ------------------------------------------
-    // ★全部のブロックが完全に停止
-    //
-    // ここで初めて新しいブロック
-    // ------------------------------------------
+    bool needMoreGravity = false;
 
-    StartNewBlock();
+    for (int i = 0; i < blockCount; i++)
+    {
+        if (!blockExist[i]) continue;
+        if (HasSupport(i)) continue;
+
+        if (blockY[i] < HEIGHT - 1)
+        {
+            needMoreGravity = true;
+            break;
+        }
+    }
+
+    if (needMoreGravity)
+    {
+        StartGravity();
+    }
+    else
+    {
+        if (gameState == 1)
+        {
+            StartRising();
+        }
+        else if (gameState == 4)
+        {
+            gameState = 0;
+            playerMoved = false;
+            playerTurnFinished = false;
+        }
+    }
 }
 
+void StartRising()
+{
+    for (int i = 0; i < blockCount; i++)
+    {
+        if (!blockExist[i]) continue;
 
-// ==================================================
-// 新しいブロックを出す
-// ==================================================
+        if (blockY[i] <= 0)
+        {
+            gameOver = true;
+            return;
+        }
+    }
+
+    bool hasBlock = false;
+
+    for (int i = 0; i < blockCount; i++)
+    {
+        if (!blockExist[i]) continue;
+
+        hasBlock = true;
+        blockY[i]--;
+        rising[i] = true;
+    }
+
+    if (hasBlock)
+        gameState = 2;
+    else
+        StartNewBlock();
+}
+
+void UpdateRising()
+{
+    bool stillRising = false;
+
+    for (int i = 0; i < blockCount; i++)
+    {
+        if (!blockExist[i]) continue;
+        if (!rising[i]) continue;
+
+        float targetY = (float)(BOARD_Y + blockY[i] * CELL);
+
+        blockDrawY[i] -= RISE_SPEED;
+
+        if (blockDrawY[i] <= targetY)
+        {
+            blockDrawY[i] = targetY;
+            rising[i] = false;
+        }
+        else
+        {
+            stillRising = true;
+        }
+    }
+
+    if (!stillRising)
+        StartNewBlock();
+}
 
 void StartNewBlock()
 {
-    // ------------------------------------------
-    // ★ここで初めて追加する
-    // ------------------------------------------
-
     AddNewAnimal();
-
-
-    // ------------------------------------------
-    // 新しいブロック出現状態
-    // ------------------------------------------
-
-    gameState = 2;
+    gameState = 3;
 }
-
-
-// ==================================================
-// 新しいブロックが下から出てくる
-// ==================================================
 
 void UpdateNewBlock()
 {
-    if (blockCount <= 0)
+    if (newBlockIndex < 0)
     {
-        gameState = 0;
-
-        playerMoved = false;
-
+        gameState = 4;
+        StartGravity();
         return;
     }
 
-
-    // ------------------------------------------
-    // 最後に追加されたブロック
-    // ------------------------------------------
-
-    int number =
-        blockCount - 1;
-
-
-    if (blockExist[number] == false)
+    if (!blockExist[newBlockIndex])
     {
-        gameState = 0;
-
-        playerMoved = false;
-
+        gameState = 4;
+        StartGravity();
         return;
     }
 
+    float targetY = (float)(BOARD_Y + blockY[newBlockIndex] * CELL);
 
-    // ------------------------------------------
-    // 本来の位置
-    // ------------------------------------------
+    blockDrawY[newBlockIndex] -= NEW_BLOCK_SPEED;
 
-    float targetY =
-        (float)(
-            BOARD_Y +
-            blockY[number] * CELL
-            );
-
-
-    // ------------------------------------------
-    // 下からゆっくり上がる
-    // ------------------------------------------
-
-    blockDrawY[number] -=
-        NEW_BLOCK_SPEED;
-
-
-    // ------------------------------------------
-    // 所定の位置に到着
-    // ------------------------------------------
-
-    if (blockDrawY[number] <=
-        targetY)
+    if (blockDrawY[newBlockIndex] <= targetY)
     {
-        blockDrawY[number] =
-            targetY;
+        blockDrawY[newBlockIndex] = targetY;
+        newBlockRising = false;
 
-
-        newBlockRising =
-            false;
-
-
-        // --------------------------------------
-        // 好物を出す
-        // --------------------------------------
-
-        MakeFavoriteFood();
-
-
-        // --------------------------------------
-        // 次のターン
-        // --------------------------------------
-
-        gameState = 0;
-
-        playerMoved = false;
+        gameState = 4;
+        StartGravity();
     }
 }
 
-
-// ==================================================
-// ゲーム初期化
-// ==================================================
-
 void InitGame()
 {
-    srand(
-        (unsigned int)
-        time(NULL));
-
-
-    // ------------------------------------------
-    // 初期化
-    // ------------------------------------------
+    srand((unsigned int)time(NULL));
 
     blockCount = 0;
-
     turn = 0;
-
     score = 0;
-
     gameOver = false;
-
     gameState = 0;
-
-
-    playerMoved = false;
-
-    playerTurnFinished = false;
-
+    newBlockIndex = -1;
 
     dragging = false;
-
     dragBlock = -1;
-
-
+    playerMoved = false;
+    playerTurnFinished = false;
     newBlockRising = false;
-
-
-    // ------------------------------------------
-    // 最初のブロック
-    // ------------------------------------------
 
     MakeInitialBlocks();
 }
 
-
-// ==================================================
-// ゲーム更新
-// ==================================================
-
 void UpdateGame()
 {
-    // ------------------------------------------
-    // ゲームオーバー
-    // ------------------------------------------
-
-    if (gameOver)
+    // Escキーでゲーム終了
+    if (CheckHitKey(KEY_INPUT_ESCAPE))
     {
-        return;
+        DxLib_End();
+        exit(0);
     }
 
-
-    // ==========================================
-    // ① プレイヤー操作
-    // ==========================================
+    if (gameOver)
+        return;
 
     if (gameState == 0)
     {
         UpdatePlayer();
 
-
-        // --------------------------------------
-        // 実際にブロックを動かした
-        // --------------------------------------
-
         if (playerTurnFinished)
         {
-            playerTurnFinished =
-                false;
-
-
-            // ターンを進める
             turn++;
-
-
-            // ----------------------------------
-            // 好物判定
-            // ----------------------------------
+            playerTurnFinished = false;
 
             CheckFavoriteFood();
 
-
-            // ==================================
-            // ★ここが一番重要
-            //
-            // 動かす
-            // ↓
-            // 重力
-            // ==================================
-
             StartGravity();
         }
-
-
-        return;
     }
-
-
-    // ==========================================
-    // ② 重力
-    // ==========================================
-
-    if (gameState == 1)
+    else if (gameState == 1)
     {
         UpdateFalling();
-
-        return;
     }
-
-
-    // ==========================================
-    // ③ 新しいブロック
-    // ==========================================
-
-    if (gameState == 2)
+    else if (gameState == 2)
+    {
+        UpdateRising();
+    }
+    else if (gameState == 3)
     {
         UpdateNewBlock();
-
-        return;
+    }
+    else if (gameState == 4)
+    {
+        UpdateFalling();
     }
 }
 
-
-// ==================================================
-// 描画
-// ==================================================
-
 void DrawGame()
 {
-    DrawGameScreen(
-        turn,
-        score,
-        gameOver);
+    DrawGameScreen(turn, score, gameOver);
 }
