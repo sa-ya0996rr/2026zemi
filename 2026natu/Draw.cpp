@@ -23,10 +23,10 @@ void DrawGameScreen(
         0,
         1200,
         800,
-        GetColor(
-            180,
-            220,
-            180),
+    GetColor(
+        180,
+        220,
+        180),
         TRUE);
 
 
