@@ -1,38 +1,4 @@
-﻿/*
-まず Draw.cpp の役割
-
-このファイルの中心は、
-
-void DrawGameScreen(
-    int turn,
-    int score,
-    bool gameOver)
-
-という関数。
-
-この関数を使って、
-
-背景
-タイトル
-ターン数
-スコア
-操作説明
-ゲーム盤
-マス目
-羊・牛・小麦・とうもろこし
-GAME OVER画面
-
-を画面に描画している。
-
-つまり、
-
-Block.cpp = ブロックの情報や判定を管理する
-Draw.cpp = その情報を画面に表示する
-
-という分担になっている。
-*/
-
-#include "DxLib.h"
+﻿#include "DxLib.h"
 #include "Draw.h"
 #include "Block.h"
 #include <cstdio>
