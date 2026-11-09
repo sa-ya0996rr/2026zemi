@@ -22,6 +22,9 @@ void Ice::Init()
 
         // ƒ`ƒƒƒ“ƒX•X‚Å‚Í‚È‚¢ó‘Ô‚É‚·‚é
         tiles[i].chance = false;
+
+        //GetFontSize()
+        //GetDrawStringWidt
     }
 }
 

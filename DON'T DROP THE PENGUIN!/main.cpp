@@ -1,23 +1,31 @@
-
+//shft+ALT+↑or↓
 #include "DxLib.h"
 #include "Game.h"
 #include <tchar.h>
 
+
+// ゲーム画面のサイズ
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+    // 準備
+    ChangeWindowMode(FALSE);
+    SetDrawScreen(DX_SCREEN_BACK);
+    //SetGraphMode(1920, 1080, 32);
+    SetGraphMode(1000, 800, 32);
+    DxLib_Init();
+    // DxLibの初期
+    if (DxLib_Init() == -1)return-1;
+    // 本編
+    Game();
+
+    DxLib_End();
+    return 0;
+}
+
 int main()
 {
-    // ゲーム画面のサイズ
-    SetGraphMode(800, 600, 32);
-
     // ウィンドウタイトル
     SetMainWindowText(_T("DON'T DROP THE PENGUIN!"));
-
-    // フルスクリーンモードに設定(FALSE = フルスクリーンモード)
-    //if (ChangeWindowMode(FALSE) != 0)
-    //{
-    //    printf("ChangeWindowMode failad.\n");
-    //    return -1;
-    //}
-    ChangeWindowMode(FALSE);
 
     // DxLib初期化
     if (DxLib_Init() == -1)

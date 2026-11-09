@@ -9,7 +9,6 @@ void Window::Center(int y, const TCHAR* text, int color)
     DrawString((800 - w) / 2, y, text, color);
 }
 
-
 void Window::DrawTitle(int select)
 {
 
