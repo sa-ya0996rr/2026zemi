@@ -78,4 +78,12 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\Downloads\Penguin sumo ring">
+      <Filter>ソース ファイル</Filter>
+    </Image>
+    <Image Include="..\..\..\Downloads\Gin">
+      <Filter>ソース ファイル</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

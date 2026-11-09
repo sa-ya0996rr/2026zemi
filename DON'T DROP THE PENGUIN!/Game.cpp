@@ -27,7 +27,6 @@ void Game::Init()
 {
     ice.Init();
     penguins[0].SetPosition(2, 5);
-    penguins[1].SetPosition(4, 5);
 }
 
 void Game::StartMatch()
@@ -35,10 +34,8 @@ void Game::StartMatch()
     ice.Init();
 
     penguins[0].SetPosition(2, 5);
-    penguins[1].SetPosition(4, 5);
 
     players[0].Reset();
-    players[1].Reset();
 
     currentPlayer = 0;
     turn = 0;
@@ -363,12 +360,7 @@ void Game::CheckGameOver()
 {
     if (penguins[0].HasFallen(ice))
     {
-        winner = 1;
-        scene = SCENE_GAMEOVER;
-    }
-    else if (penguins[1].HasFallen(ice))
-    {
-        winner = 0;
+        winner = 1 - currentPlayer;
         scene = SCENE_GAMEOVER;
     }
 }
@@ -386,10 +378,10 @@ void Game::Draw()
     else if (scene == SCENE_PLAY ||
         scene == SCENE_CHANCE_CHOICE)
     {
-        ice.Draw();
+        ice.Draw(charge.IsRunning() ? pendingTile : -1);
 
+        // ƒyƒ“ƒMƒ“‚ð•`‰æ
         penguins[0].Draw(ice, 0);
-        penguins[1].Draw(ice, 1);
 
         window.DrawPlay(currentPlayer, players, turn, charge);
 

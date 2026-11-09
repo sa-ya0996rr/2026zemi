@@ -18,7 +18,8 @@ class Ice
 public:
     Ice();
     void Init();
-    void Draw();
+    // •X‚Ì•`‰æi‘I‘ğ’†‚Ì•X‚Ì”Ô†‚ğó‚¯æ‚éj
+    void Draw(int selectedIndex = -1);
     int HitTest(int mx, int my) const;
     void ApplyDamage(int index, int damage);
     void RemoveTile(int index);

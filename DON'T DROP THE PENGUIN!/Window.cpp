@@ -48,13 +48,6 @@ void Window::DrawTitle(int select)
             GetColor(20, 35, 50)
         );
     }
-
-    // ëÄçÏê‡ñæ
-    Center(
-        525,
-        _T("UP/DOWN: SELECT   ENTER: DECIDE"),
-        GetColor(40, 60, 80)
-    );
 }
 
 void Window::DrawMode(int select)

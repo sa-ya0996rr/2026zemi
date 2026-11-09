@@ -8,15 +8,16 @@ int main()
     // ゲーム画面のサイズ
     SetGraphMode(800, 600, 32);
 
-    // フルスクリーンモードに設定(FALSE = フルスクリーンモード)
-    if (ChangeWindowMode(FALSE) != 0)
-    {
-        printf("ChangeWindowMode failad.\n");
-        return -1;
-    }
-
     // ウィンドウタイトル
     SetMainWindowText(_T("DON'T DROP THE PENGUIN!"));
+
+    // フルスクリーンモードに設定(FALSE = フルスクリーンモード)
+    //if (ChangeWindowMode(FALSE) != 0)
+    //{
+    //    printf("ChangeWindowMode failad.\n");
+    //    return -1;
+    //}
+    ChangeWindowMode(FALSE);
 
     // DxLib初期化
     if (DxLib_Init() == -1)
