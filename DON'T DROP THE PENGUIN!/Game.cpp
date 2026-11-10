@@ -19,16 +19,23 @@ Game::Game()
     previousSpace(0),
     previousMouse(0),
     mouseX(0),
-    mouseY(0)
+    mouseY(0),
+    backgroundHandle(-1)
 {
 }
 
+// 初期化
 void Game::Init()
 {
+    // 背景画像を読み込む
+    backgroundHandle = LoadGraph(_T("images/background.png"));
+
     ice.Init();
+
     penguins[0].SetPosition(2, 5);
 }
 
+// 試合開始
 void Game::StartMatch()
 {
     ice.Init();
@@ -41,10 +48,12 @@ void Game::StartMatch()
     turn = 0;
     winner = -1;
     pendingChance = false;
+    pendingTile = -1;
 
     scene = SCENE_PLAY;
 }
 
+// 更新処理
 void Game::Update()
 {
     int enter = CheckHitKey(KEY_INPUT_RETURN);
@@ -111,6 +120,7 @@ void Game::HandleTitle()
     GetMousePoint(&mx, &my);
 
     int mouse = (GetMouseInput() & MOUSE_INPUT_LEFT) != 0;
+
     bool mouseClick = mouse && !previousMouse;
     bool enterClick = CheckHitKey(KEY_INPUT_RETURN) && !previousEnter;
 
@@ -125,7 +135,7 @@ void Game::HandleTitle()
         menuSelect = (menuSelect + 1) % 3;
     }
 
-    // マウスの位置で選択項目を変更
+    // マウス位置で選択項目を変更
     for (int i = 0; i < 3; i++)
     {
         int top = 300 + i * 55;
@@ -182,6 +192,7 @@ void Game::HandleMode()
     GetMousePoint(&mx, &my);
 
     int mouse = (GetMouseInput() & MOUSE_INPUT_LEFT) != 0;
+
     bool mouseClick = mouse && !previousMouse;
     bool enterClick = CheckHitKey(KEY_INPUT_RETURN) && !previousEnter;
 
@@ -196,7 +207,7 @@ void Game::HandleMode()
         menuSelect = (menuSelect + 1) % 3;
     }
 
-    // マウスの位置で選択項目を変更
+    // マウス位置で選択項目を変更
     for (int i = 0; i < 3; i++)
     {
         int top = 250 + i * 60;
@@ -246,6 +257,7 @@ void Game::HandleMode()
     }
 }
 
+// ゲーム中の処理
 void Game::HandlePlay()
 {
     cpuTurn = (mode == 1 && currentPlayer == 1);
@@ -301,7 +313,9 @@ void Game::HandlePlay()
         }
 
         pendingTile = tile;
+
         charge.Start(false);
+
         scene = SCENE_PLAY;
     }
 
@@ -310,6 +324,7 @@ void Game::HandlePlay()
         if (CheckHitKey(KEY_INPUT_SPACE) && !previousSpace)
         {
             int power = charge.Stop();
+
             HandleChargeResult(power, power >= 100);
         }
     }
@@ -324,6 +339,7 @@ void Game::HandlePlay()
     }
 }
 
+// チャージ結果
 void Game::HandleChargeResult(int power, bool perfect)
 {
     if (pendingTile < 0)
@@ -356,6 +372,7 @@ void Game::HandleChargeResult(int power, bool perfect)
     pendingTile = -1;
 }
 
+// ゲームオーバー判定
 void Game::CheckGameOver()
 {
     if (penguins[0].HasFallen(ice))
@@ -365,35 +382,48 @@ void Game::CheckGameOver()
     }
 }
 
+// 描画処理
+
 void Game::Draw()
 {
+    // タイトル画面
     if (scene == SCENE_TITLE)
     {
         window.DrawTitle(menuSelect);
     }
+    // CPU難易度選択画面
     else if (scene == SCENE_MODE)
     {
         window.DrawMode(menuSelect);
     }
+    // ゲームプレイ画面
     else if (scene == SCENE_PLAY ||
         scene == SCENE_CHANCE_CHOICE)
     {
+        // 背景はWindow側で描画
+        window.DrawBackground();
+
+        // 氷を描画
         ice.Draw(charge.IsRunning() ? pendingTile : -1);
 
         // ペンギンを描画
         penguins[0].Draw(ice, 0);
 
+        // UIを描画
         window.DrawPlay(currentPlayer, players, turn, charge);
 
+        // チャンス氷の選択画面
         if (scene == SCENE_CHANCE_CHOICE)
         {
             window.DrawChanceChoice();
         }
     }
+    // ゲームオーバー画面
     else
     {
         window.DrawGameOver(winner);
     }
 
+    // エフェクトを描画
     effect.Draw();
 }

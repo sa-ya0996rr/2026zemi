@@ -1,423 +1,263 @@
 
 #include "Ice.h"
+
 #include <cstdlib>
+#include <cmath>
 #include <tchar.h>
+
+// •X‚Ì‰æ‘œƒTƒCƒY
+const int ICE_IMAGE_SIZE = 84;
+
+// •X‚Ì”z’uˆÊ’u
+const int ICE_START_X = 105;
+const int ICE_START_Y = 95;
+
+const int ICE_SPACE_X = 85;
+const int ICE_SPACE_Y = 75;
+
+// s‚²‚Æ‚Ì‰¡ˆÊ’u’²®
+const int ROW_OFFSET_X[BOARD_ROWS] =
+{
+    0, 3, -2, 2, -3, 1
+};
 
 // ƒRƒ“ƒXƒgƒ‰ƒNƒ^
 Ice::Ice()
+    : iceWhiteHandle(-1),
+    iceBlueHandle(-1)
 {
-    Init();
+    for (int i = 0; i < TILE_COUNT; i++)
+    {
+        tiles[i].durability = 100;
+        tiles[i].exists = true;
+        tiles[i].chance = false;
+    }
 }
 
-// •X‚Ì‰Šú‰»
+// ‰Šú‰»
 void Ice::Init()
 {
-    for (int i = 0; i < TILE_COUNT; ++i)
+    // •X‰æ‘œ‚ğ“Ç‚İ‚Ş
+    iceWhiteHandle = LoadGraph(_T("images/ice_white.png"));
+    iceBlueHandle = LoadGraph(_T("images/ice_blue.png"));
+
+    // •X‚Ìó‘Ô‚ğ‰Šú‰»
+    for (int i = 0; i < TILE_COUNT; i++)
     {
-        // ‘S‚Ä‚Ì•X‚ğ‘¶İ‚³‚¹‚é
-        tiles[i].exists = true;
-
-        // ‘Ï‹v’l‚ğ100‚Éİ’è
         tiles[i].durability = 100;
-
-        // ƒ`ƒƒƒ“ƒX•X‚Å‚Í‚È‚¢ó‘Ô‚É‚·‚é
+        tiles[i].exists = true;
         tiles[i].chance = false;
-
-        //GetFontSize()
-        //GetDrawStringWidt
     }
 }
 
-// •X‚ÌX•ûŒü‚ÌˆÊ’u‚ğæ“¾‚·‚é
-int Ice::TileX(int i) const
-{
-    return i % BOARD_COLS;
-}
-
-// •X‚ÌY•ûŒü‚ÌˆÊ’u‚ğæ“¾‚·‚é
-int Ice::TileY(int i) const
-{
-    return i / BOARD_COLS;
-}
-
-// •X‚Ì’†SXÀ•W‚ğæ“¾‚·‚é
-int Ice::TileCenterX(int i) const
-{
-    int x = TileX(i);
-    int y = TileY(i);
-
-    // Še’i‚Ì‰¡•ûŒü‚Ì‚¸‚ê
-    const int rowOffsetX[BOARD_ROWS] =
-    {
-        0, 3, -2, 2, -3, 1
-    };
-
-    // ˜ZŠpŒ`‚ğ–§W‚³‚¹‚È‚ª‚çA”z’u‚ğ­‚µ•s‹K‘¥‚É‚·‚é
-    return 105 + x * 85 + (y % 2) * 42 + rowOffsetX[y];
-}
-
-// •X‚Ì’†SYÀ•W‚ğæ“¾‚·‚é
-int Ice::TileCenterY(int i) const
-{
-    int y = TileY(i);
-
-    // ‚‚³‚Í‘S‚Ä“ˆê‚·‚é
-    return 95 + y * 75;
-}
-
-// •X‚ª‘¶İ‚·‚é‚©
-bool Ice::IsTilePresent(int i) const
-{
-    return i >= 0 && i < TILE_COUNT && tiles[i].exists;
-}
-
-// •X‚ªÁ‚¦‚Ä‚¢‚é‚©
-bool Ice::IsGone(int i) const
-{
-    return !IsTilePresent(i);
-}
-
-// ƒ`ƒƒƒ“ƒX•X‚©
-bool Ice::IsChance(int i) const
-{
-    return i >= 0 && i < TILE_COUNT && tiles[i].chance;
-}
-
-// •X‚Ì“y•U‚ÆŠC‚ğ•`‰æ‚·‚é
+// •X‚Ì•`‰æ
 void Ice::Draw(int selectedIndex)
 {
-    // ŠC‚Ì”wŒi
-    DrawBox(0, 0, 800, 600, GetColor(8, 55, 105), TRUE);
-    DrawBox(0, 300, 800, 600, GetColor(5, 35, 85), TRUE);
-
-    // ŠC–Ê‚Ì”g
-    for (int i = 0; i < 18; ++i)
+    for (int i = 0; i < TILE_COUNT; i++)
     {
-        int waveX = (i * 73 + 19) % 780;
-        int waveY = 35 + (i * 47 + 11) % 465;
-
-        DrawLine(
-            waveX, waveY,
-            waveX + 24, waveY,
-            GetColor(45, 125, 190)
-        );
-
-        DrawLine(
-            waveX + 8, waveY + 3,
-            waveX + 30, waveY + 3,
-            GetColor(20, 90, 155)
-        );
-    }
-
-    const int radius = 42;
-    const int sideDepth = 105;
-
-    int DrawExtendGraph;
-
-    // •X‚Ì‘¤–Ê‚ğ•`‰æ‚·‚é
-    for (int i = 0; i < TILE_COUNT; ++i)
-    {
+        // ‘¶İ‚µ‚È‚¢•X‚Í•`‰æ‚µ‚È‚¢
         if (!tiles[i].exists)
         {
             continue;
         }
 
-        // •X‚Ì’†SÀ•W
-        int cx = TileCenterX(i);
-        int cy = TileCenterY(i);
+        int centerX = TileCenterX(i);
+        int centerY = TileCenterY(i);
 
-        // ˜ZŠpŒ`‚Ì‰º‘¤‚ÌÀ•W
-        int x1 = cx - radius / 2;
-        int y1 = cy + radius * 3 / 4;
+        int imageSize = ICE_IMAGE_SIZE;
 
-        int x2 = cx + radius / 2;
-        int y2 = cy + radius * 3 / 4;
-
-        int x3 = cx + radius;
-        int y3 = cy;
-
-        int x4 = cx - radius;
-        int y4 = cy;
-
-        // ³–Ê‘¤
-        DrawTriangle(
-            x1, y1,
-            x2, y2,
-            x2, y2 + sideDepth,
-            GetColor(35, 145, 210), TRUE
-        );
-
-        DrawTriangle(
-            x1, y1,
-            x2, y2 + sideDepth,
-            x1, y1 + sideDepth,
-            GetColor(25, 115, 185), TRUE
-        );
-
-        // ¶‘¤–Ê
-        DrawTriangle(
-            x4, y4,
-            x1, y1,
-            x1, y1 + sideDepth,
-            GetColor(40, 165, 220), TRUE
-        );
-
-        DrawTriangle(
-            x4, y4,
-            x1, y1 + sideDepth,
-            x4, y4 + sideDepth,
-            GetColor(25, 125, 195), TRUE
-        );
-
-        // ‰E‘¤–Ê
-        DrawTriangle(
-            x2, y2,
-            x3, y3,
-            x3, y3 + sideDepth,
-            GetColor(30, 135, 205), TRUE
-        );
-
-        DrawTriangle(
-            x2, y2,
-            x3, y3 + sideDepth,
-            x2, y2 + sideDepth,
-            GetColor(20, 105, 175), TRUE
-        );
-    }
-
-    // •X‚Ìã–Ê‚ğ•`‰æ‚·‚é
-    for (int i = 0; i < TILE_COUNT; ++i)
-    {
-        if (!tiles[i].exists)
+        // ‘I‘ğ’†‚Ì•X‚Í­‚µ‘å‚«‚­‚·‚é
+        if (i == selectedIndex)
         {
-            continue;
+            imageSize = 92;
         }
 
-        // •X‚Ì’†SÀ•W
-        int cx = TileCenterX(i);
-        int cy = TileCenterY(i);
+        int drawX = centerX - imageSize / 2;
+        int drawY = centerY - imageSize / 2;
 
-        // ˜ZŠpŒ`‚Ì’¸“_À•W
-        int vx[6] =
-        {
-            cx,
-            cx + radius,
-            cx + radius,
-            cx,
-            cx - radius,
-            cx - radius
-        };
-
-        int vy[6] =
-        {
-            cy - radius,
-            cy - radius / 2,
-            cy + radius / 2,
-            cy + radius,
-            cy + radius / 2,
-            cy - radius / 2
-        };
-
-        // •X‚ÌF‚ÍÂF‚Æ…F‚É‹ß‚¢”’F‚Ì2F‚É“ˆê
-        // ƒ`ƒƒƒ“ƒX•X‚àF‚Í•ÏX‚µ‚È‚¢
-        int topColor;
+        // ”’‚¢•X‚ÆÂ‚¢•X‚ğŒğŒİ‚Ég‚¤
+        int imageHandle;
 
         if (i % 2 == 0)
         {
-            topColor = GetColor(155, 225, 250);
+            imageHandle = iceBlueHandle;
         }
         else
         {
-            topColor = GetColor(220, 245, 255);
+            imageHandle = iceWhiteHandle;
         }
 
-        // •X‚Ì—ÖŠsF
-        int edgeColor = GetColor(65, 155, 210);
-
-        // ‘I‘ğ’†‚Ì•X‚Í—ÖŠs‚ğ–¾‚é‚­‚·‚é
-        if (i == selectedIndex)
+        // •X‚Ì‰æ‘œ‚ğ•`‰æ
+        if (imageHandle != -1)
         {
-            edgeColor = GetColor(255, 255, 255);
+            DrawExtendGraph(
+                drawX,
+                drawY,
+                drawX + imageSize,
+                drawY + imageSize,
+                imageHandle,
+                TRUE
+            );
         }
-
-        // ˜ZŠpŒ`‚Ìã–Ê‚ğ•`‰æ
-        for (int k = 0; k < 6; ++k)
+        else
         {
-            int next = (k + 1) % 6;
-
-            DrawTriangle(
-                cx, cy,
-                vx[k], vy[k],
-                vx[next], vy[next],
-                topColor, TRUE
+            // ‰æ‘œ‚ª“Ç‚İ‚ß‚È‚©‚Á‚½ê‡‚Ì‰¼•\¦
+            DrawCircle(
+                centerX,
+                centerY,
+                40,
+                GetColor(180, 230, 255),
+                TRUE
             );
         }
 
-        // ˜ZŠpŒ`‚Ì—ÖŠs‚ğ•`‰æ
-        for (int k = 0; k < 6; ++k)
-        {
-            int next = (k + 1) % 6;
-
-            DrawLine(
-                vx[k], vy[k],
-                vx[next], vy[next],
-                edgeColor
-            );
-        }
-
-        // ‘Ï‹v’l‚ğ•\¦
+        // ‘Ï‹v’l‚ª100–¢–‚Ìê‡‚É•\¦
         if (tiles[i].durability < 100)
         {
-            TCHAR str[16];
-
-            _stprintf_s(
-                str,
+            DrawFormatString(
+                centerX - 15,
+                centerY - 10,
+                GetColor(20, 50, 80),
                 _T("%d"),
                 tiles[i].durability
-            );
-
-            DrawString(
-                cx - 12,
-                cy - 8,
-                str,
-                GetColor(20, 50, 80)
             );
         }
 
         // ƒ`ƒƒƒ“ƒX•X‚ÌƒLƒ‰ƒLƒ‰‰‰o
-        // •X–{‘Ì‚ÌF‚Í•ÏX‚µ‚È‚¢
         if (tiles[i].chance)
         {
-            int sparkleColor = GetColor(255, 255, 255);
+            int sparkleColor = GetColor(255, 255, 180);
 
-            // ’†‰›‚ÌƒLƒ‰ƒLƒ‰
             DrawLine(
-                cx - 8, cy - 28,
-                cx + 8, cy - 28,
-                sparkleColor
+                centerX - 18,
+                centerY - 18,
+                centerX + 18,
+                centerY + 18,
+                sparkleColor,
+                3
             );
 
             DrawLine(
-                cx, cy - 36,
-                cx, cy - 20,
-                sparkleColor
+                centerX - 18,
+                centerY + 18,
+                centerX + 18,
+                centerY - 18,
+                sparkleColor,
+                3
             );
 
-            // Î‚ß‚ÌŒõ
-            DrawLine(
-                cx - 5, cy - 33,
-                cx + 5, cy - 23,
-                sparkleColor
+            DrawCircle(
+                centerX,
+                centerY,
+                5,
+                GetColor(255, 255, 255),
+                TRUE
             );
+        }
 
-            DrawLine(
-                cx + 5, cy - 33,
-                cx - 5, cy - 23,
-                sparkleColor
-            );
-
-            // ¬‚³‚ÈƒLƒ‰ƒLƒ‰
-            DrawLine(
-                cx + 20, cy - 12,
-                cx + 28, cy - 12,
-                sparkleColor
-            );
-
-            DrawLine(
-                cx + 24, cy - 16,
-                cx + 24, cy - 8,
-                sparkleColor
+        // ‘I‘ğ’†‚Ì•X‚ğˆÍ‚Ş
+        if (i == selectedIndex)
+        {
+            DrawCircle(
+                centerX,
+                centerY,
+                44,
+                GetColor(255, 230, 50),
+                FALSE
             );
         }
     }
 }
 
-// ƒ}ƒEƒX‚Å‘I‘ğ‚³‚ê‚½•X‚Ì”Ô†‚ğæ“¾‚·‚é
+// ƒ}ƒEƒXˆÊ’u‚©‚ç•X‚ğ”»’è
 int Ice::HitTest(int mx, int my) const
 {
-    for (int i = 0; i < TILE_COUNT; ++i)
+    for (int i = 0; i < TILE_COUNT; i++)
     {
-        // ‘¶İ‚µ‚È‚¢•X‚Í‘I‘ğ‚Å‚«‚È‚¢
         if (!tiles[i].exists)
         {
             continue;
         }
 
-        // •X‚Ì’†SÀ•W
-        int cx = TileCenterX(i);
-        int cy = TileCenterY(i);
+        int centerX = TileCenterX(i);
+        int centerY = TileCenterY(i);
 
-        // ƒ}ƒEƒX‚Æ•X‚Ì’†S‚Æ‚Ì‹——£
-        int dx = mx - cx;
-        int dy = my - cy;
+        int dx = mx - centerX;
+        int dy = my - centerY;
 
-        // ‹——£‚Ìâ‘Î’l
-        int absX = abs(dx);
-        int absY = abs(dy);
-
-        const int radius = 42;
-
-        // ˜ZŠpŒ`‚Ì“à‘¤‚©”»’è
-        bool inside = false;
-
-        if (absY <= radius / 2)
+        // •X‚Ì”ÍˆÍ“à‚©”»’è
+        if (abs(dx) <= 42 && abs(dy) <= 42)
         {
-            if (absX <= radius)
+            if (abs(dx) + abs(dy) * 0.6 <= 42)
             {
-                inside = true;
+                return i;
             }
-        }
-        else if (absY <= radius)
-        {
-            int maxX = 2 * (radius - absY);
-
-            if (absX <= maxX)
-            {
-                inside = true;
-            }
-        }
-
-        // •X‚Ì“à‘¤‚È‚ç”Ô†‚ğ•Ô‚·
-        if (inside)
-        {
-            return i;
         }
     }
 
     return -1;
 }
 
-// w’è‚µ‚½•X‚Éƒ_ƒ[ƒW‚ğ—^‚¦‚é
-void Ice::ApplyDamage(int i, int damage)
+// •X‚Éƒ_ƒ[ƒW‚ğ—^‚¦‚é
+void Ice::ApplyDamage(int index, int damage)
 {
-    if (!IsTilePresent(i))
+    if (index < 0 || index >= TILE_COUNT)
     {
         return;
     }
 
-    // ‘Ï‹v’l‚ğŒ¸‚ç‚·
-    tiles[i].durability -= damage;
-
-    // ‘Ï‹v’l‚ª80–¢–‚É‚È‚Á‚½‚ç•X‚ğÁ‚·
-    if (tiles[i].durability < 80)
+    if (!tiles[index].exists)
     {
-        tiles[i].exists = false;
+        return;
+    }
+
+    tiles[index].durability -= damage;
+
+    // ‘Ï‹v’l‚ª80–¢–‚É‚È‚é‚Æ•X‚ªÁ‚¦‚é
+    if (tiles[index].durability < 80)
+    {
+        RemoveTile(index);
     }
 }
 
-// w’è‚³‚ê‚½•X‚ğæ‚èœ‚­
-void Ice::RemoveTile(int i)
+// •X‚ğÁ‚·
+void Ice::RemoveTile(int index)
 {
-    if (i >= 0 && i < TILE_COUNT)
+    if (index < 0 || index >= TILE_COUNT)
     {
-        tiles[i].exists = false;
+        return;
     }
+
+    tiles[index].exists = false;
+    tiles[index].chance = false;
+}
+
+// •X‚ªÁ‚¦‚Ä‚¢‚é‚©
+bool Ice::IsGone(int index) const
+{
+    if (index < 0 || index >= TILE_COUNT)
+    {
+        return true;
+    }
+
+    return !tiles[index].exists;
+}
+
+// ƒ`ƒƒƒ“ƒX•X‚©
+bool Ice::IsChance(int index) const
+{
+    if (index < 0 || index >= TILE_COUNT)
+    {
+        return false;
+    }
+
+    return tiles[index].chance;
 }
 
 // ƒ`ƒƒƒ“ƒX•X‚ª‘¶İ‚·‚é‚©
 bool Ice::HasChanceIce() const
 {
-    for (int i = 0; i < TILE_COUNT; ++i)
+    for (int i = 0; i < TILE_COUNT; i++)
     {
         if (tiles[i].exists && tiles[i].chance)
         {
@@ -428,156 +268,270 @@ bool Ice::HasChanceIce() const
     return false;
 }
 
-// ƒ`ƒƒƒ“ƒX•X‚ğƒ‰ƒ“ƒ_ƒ€‚ÉoŒ»‚³‚¹‚é
+// ƒ`ƒƒƒ“ƒX•X‚ğƒ‰ƒ“ƒ_ƒ€‚É¶¬
 void Ice::SpawnChanceIce()
 {
-    // ”z’u‚Å‚«‚é•X‚ÌŒó•â
-    int candidates[TILE_COUNT];
-    int count = 0;
-
-    // ‘¶İ‚·‚é’Êí‚Ì•X‚ğ’T‚·
-    for (int i = 0; i < TILE_COUNT; ++i)
+    // Šù‚Éƒ`ƒƒƒ“ƒX•X‚ª‚ ‚éê‡‚Í¶¬‚µ‚È‚¢
+    if (HasChanceIce())
     {
-        if (tiles[i].exists && !tiles[i].chance)
+        return;
+    }
+
+    int candidates[TILE_COUNT];
+    int candidateCount = 0;
+
+    // ‘¶İ‚·‚é•X‚ğŒó•â‚É‚·‚é
+    for (int i = 0; i < TILE_COUNT; i++)
+    {
+        if (tiles[i].exists)
         {
-            candidates[count] = i;
-            count++;
+            candidates[candidateCount] = i;
+            candidateCount++;
         }
     }
 
-    // ”z’u‚Å‚«‚é•X‚ª‚ ‚ê‚Îƒ‰ƒ“ƒ_ƒ€‚É‘I‚Ô
-    if (count > 0)
+    // Œó•â‚ª‚È‚¢ê‡
+    if (candidateCount == 0)
     {
-        int randomIndex = GetRand(count - 1);
-
-        tiles[candidates[randomIndex]].chance = true;
+        return;
     }
+
+    // Œó•â‚©‚çƒ‰ƒ“ƒ_ƒ€‚É‘I‚Ô
+    int selected = candidates[rand() % candidateCount];
+
+    tiles[selected].chance = true;
 }
 
-// —×Ú‚·‚é•X‚Ì”Ô†‚ğæ“¾‚·‚é
-void Ice::GetNeighbors(int i, int out[6], int& count) const
+// •X‚Ì—ñ”Ô†
+int Ice::TileX(int index) const
+{
+    if (index < 0 || index >= TILE_COUNT)
+    {
+        return -1;
+    }
+
+    return index % BOARD_COLS;
+}
+
+// •X‚Ìs”Ô†
+int Ice::TileY(int index) const
+{
+    if (index < 0 || index >= TILE_COUNT)
+    {
+        return -1;
+    }
+
+    return index / BOARD_COLS;
+}
+
+// •X‚Ì’†SXÀ•W
+int Ice::TileCenterX(int index) const
+{
+    if (index < 0 || index >= TILE_COUNT)
+    {
+        return 0;
+    }
+
+    int x = TileX(index);
+    int y = TileY(index);
+
+    return ICE_START_X
+        + x * ICE_SPACE_X
+        + (y % 2) * 42
+        + ROW_OFFSET_X[y];
+}
+
+// •X‚Ì’†SYÀ•W
+int Ice::TileCenterY(int index) const
+{
+    if (index < 0 || index >= TILE_COUNT)
+    {
+        return 0;
+    }
+
+    int y = TileY(index);
+
+    return ICE_START_Y + y * ICE_SPACE_Y;
+}
+
+// •X‚ª‘¶İ‚·‚é‚©
+bool Ice::IsTilePresent(int index) const
+{
+    if (index < 0 || index >= TILE_COUNT)
+    {
+        return false;
+    }
+
+    return tiles[index].exists;
+}
+
+// —×Ú‚·‚é•X‚ğæ“¾
+void Ice::GetNeighbors(
+    int index,
+    int out[6],
+    int& count
+) const
 {
     count = 0;
 
-    // Œ»İ‚Ì•X‚ÌˆÊ’u
-    int x = TileX(i);
-    int y = TileY(i);
-
-    // ‹ô”s‚Ì—×ÚÀ•W
-    const int dxEven[6] = { -1, 1, -1, 0, -1, 0 };
-    const int dyEven[6] = { 0, 0, -1, -1, 1, 1 };
-
-    // Šï”s‚Ì—×ÚÀ•W
-    const int dxOdd[6] = { -1, 1, 0, 1, 0, 1 };
-    const int dyOdd[6] = { 0, 0, -1, -1, 1, 1 };
-
-    // üˆÍ6•ûŒü‚ğ’²‚×‚é
-    for (int k = 0; k < 6; ++k)
+    if (index < 0 || index >= TILE_COUNT)
     {
-        // nx‚Æny‚ğif‚ÌŠO‚ÅéŒ¾‚·‚é
-        int nx;
-        int ny;
+        return;
+    }
 
-        if (y % 2 == 1)
+    int x = TileX(index);
+    int y = TileY(index);
+
+    // “¯‚¶s‚Ì¶‰E
+    if (x > 0)
+    {
+        out[count++] = index - 1;
+    }
+
+    if (x < BOARD_COLS - 1)
+    {
+        out[count++] = index + 1;
+    }
+
+    // ã‰º‚Ìs
+    if (y > 0)
+    {
+        if (y % 2 == 0)
         {
-            nx = x + dxOdd[k];
-            ny = y + dyOdd[k];
+            // ‹ô”s
+            if (x > 0)
+            {
+                out[count++] = index - BOARD_COLS - 1;
+            }
+
+            out[count++] = index - BOARD_COLS;
         }
         else
         {
-            nx = x + dxEven[k];
-            ny = y + dyEven[k];
-        }
+            // Šï”s
+            out[count++] = index - BOARD_COLS;
 
-        // ”Õ–Ê‚Ì”ÍˆÍ“à‚È‚ç“o˜^‚·‚é
-        if (nx >= 0 && nx < BOARD_COLS &&
-            ny >= 0 && ny < BOARD_ROWS)
-        {
-            out[count] = ny * BOARD_COLS + nx;
-            count++;
-        }
-    }
-}
-
-// •X‚ªÅ‰º’i‚Ü‚ÅŒq‚ª‚Á‚Ä‚¢‚é‚©’²‚×‚é
-bool Ice::HasStablePath(int i) const
-{
-    // ’²¸Ï‚İ‚Ì•X
-    bool visited[TILE_COUNT] = {};
-
-    // ’²¸—p‚ÌƒLƒ…[
-    int queue[TILE_COUNT];
-
-    int head = 0;
-    int tail = 0;
-
-    // ’²¸ŠJn’n“_
-    queue[tail] = i;
-    tail++;
-
-    visited[i] = true;
-
-    // ƒLƒ…[‚É•X‚ªc‚Á‚Ä‚¢‚éŠÔ’²‚×‚é
-    while (head < tail)
-    {
-        int cur = queue[head];
-        head++;
-
-        // Å‰º’i‚Ü‚ÅŒq‚ª‚Á‚Ä‚¢‚ê‚ÎˆÀ’è
-        if (TileY(cur) == BOARD_ROWS - 1)
-        {
-            return true;
-        }
-
-        // —×Ú‚·‚é•X‚ğæ“¾
-        int n[6];
-        int count = 0;
-
-        GetNeighbors(cur, n, count);
-
-        // —×Ú‚·‚é•X‚ğ’²‚×‚é
-        for (int k = 0; k < count; ++k)
-        {
-            int next = n[k];
-
-            if (tiles[next].exists && !visited[next])
+            if (x < BOARD_COLS - 1)
             {
-                visited[next] = true;
-
-                queue[tail] = next;
-                tail++;
+                out[count++] = index - BOARD_COLS + 1;
             }
         }
     }
 
-    // Å‰º’i‚ÉŒq‚ª‚Á‚Ä‚¢‚È‚¢
-    return false;
+    if (y < BOARD_ROWS - 1)
+    {
+        if (y % 2 == 0)
+        {
+            // ‹ô”s
+            if (x > 0)
+            {
+                out[count++] = index + BOARD_COLS - 1;
+            }
+
+            out[count++] = index + BOARD_COLS;
+        }
+        else
+        {
+            // Šï”s
+            out[count++] = index + BOARD_COLS;
+
+            if (x < BOARD_COLS - 1)
+            {
+                out[count++] = index + BOARD_COLS + 1;
+            }
+        }
+    }
 }
 
-// x‚¦‚ª‚È‚­‚È‚Á‚½•X‚ğ•ö—‚³‚¹‚é
-void Ice::ResolveCollapse(Penguin penguins[2])
+// ‰º‚Ìs‚Ü‚ÅˆÀ’è‚µ‚ÄŒq‚ª‚Á‚Ä‚¢‚é‚©
+bool Ice::HasStablePath(int index) const
 {
-    // penguins‚ÍGame‘¤‚Å—‰º”»’è‚Ég—p‚·‚é
-    (void)penguins;
-
-    // •ö—‚·‚é•X‚ğ‹L˜^‚·‚é
-    bool fall[TILE_COUNT] = {};
-
-    // ‘S‚Ä‚Ì•X‚ÌˆÀ’è«‚ğ’²‚×‚é
-    for (int i = 0; i < TILE_COUNT; ++i)
+    if (index < 0 || index >= TILE_COUNT)
     {
-        if (tiles[i].exists && !HasStablePath(i))
+        return false;
+    }
+
+    if (!tiles[index].exists)
+    {
+        return false;
+    }
+
+    bool visited[TILE_COUNT] = {};
+
+    int queue[TILE_COUNT];
+    int head = 0;
+    int tail = 0;
+
+    queue[tail++] = index;
+    visited[index] = true;
+
+    while (head < tail)
+    {
+        int current = queue[head++];
+
+        // Å‰º’i‚É“’B‚µ‚½‚çˆÀ’è
+        if (TileY(current) == BOARD_ROWS - 1)
         {
-            fall[i] = true;
+            return true;
+        }
+
+        int neighbors[6];
+        int count = 0;
+
+        GetNeighbors(current, neighbors, count);
+
+        for (int i = 0; i < count; i++)
+        {
+            int next = neighbors[i];
+
+            if (next < 0 || next >= TILE_COUNT)
+            {
+                continue;
+            }
+
+            if (!tiles[next].exists)
+            {
+                continue;
+            }
+
+            if (visited[next])
+            {
+                continue;
+            }
+
+            visited[next] = true;
+            queue[tail++] = next;
         }
     }
 
-    // •ö—‚·‚é•X‚ğæ‚èœ‚­
-    for (int i = 0; i < TILE_COUNT; ++i)
+    return false;
+}
+
+// x‚¦‚ª‚È‚­‚È‚Á‚½•X‚ğ—‰º‚³‚¹‚é
+void Ice::ResolveCollapse(Penguin penguins[2])
+{
+    // penguins‚Ì—‰ºE”s–k”»’è‚ÍGame‘¤‚Ås‚¤
+    (void)penguins;
+
+    bool changed = true;
+
+    while (changed)
     {
-        if (fall[i])
+        changed = false;
+
+        for (int i = 0; i < TILE_COUNT; i++)
         {
-            tiles[i].exists = false;
+            if (!tiles[i].exists)
+            {
+                continue;
+            }
+
+            // ‰º‚Ì’i‚Ü‚ÅŒq‚ª‚Á‚Ä‚¢‚È‚¢•X‚ğÁ‚·
+            if (!HasStablePath(i))
+            {
+                RemoveTile(i);
+                changed = true;
+            }
         }
     }
 }

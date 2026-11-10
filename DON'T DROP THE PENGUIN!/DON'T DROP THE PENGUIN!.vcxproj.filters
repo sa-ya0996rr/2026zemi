@@ -78,4 +78,15 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="images\ice_blue.png">
+      <Filter>ソース ファイル</Filter>
+    </Image>
+    <Image Include="images\ice_white.png">
+      <Filter>ソース ファイル</Filter>
+    </Image>
+    <Image Include="images\background.png">
+      <Filter>ソース ファイル</Filter>
+    </Image>
+  </ItemGroup>
 </Project>
