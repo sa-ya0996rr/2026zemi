@@ -16,8 +16,8 @@ public:
     // 画像の解放
     void Release();
 
-    // ペンギンの位置を設定
-    void SetPosition(int x, int y);
+    // ペンギンの位置を設定（氷の番号）
+    void SetPosition(int tileIndex);
 
     // 指定された氷のタイルの上にいるか判定
     bool IsOnTile(int index, const Ice& ice) const;
@@ -29,8 +29,8 @@ public:
     void Draw(const Ice& ice, int player) const;
 
 private:
-    int x;
-    int y;
+    // ペンギンがいる氷の番号
+    int tileIndex;
 
     // ペンギン画像のハンドル
     int imageHandle;

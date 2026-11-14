@@ -5,22 +5,33 @@
 #include <cmath>
 #include <tchar.h>
 
-// 氷の画像サイズ
+// 氷画像の描画サイズ
 const int ICE_IMAGE_SIZE = 84;
 
-// 氷の配置位置（1000×800画面の中央寄り）
-const int ICE_START_X = 225;
-const int ICE_START_Y = 125;
+// 盤面の中央位置
+const int ICE_CENTER_X = 500;
+const int ICE_CENTER_Y = 400;
 
-// 氷同士の間隔
-const int ICE_SPACE_X = 85;
-const int ICE_SPACE_Y = 75;
+// 横方向・縦方向の配置間隔
+const int ICE_SPACE_X = 63;
+const int ICE_SPACE_Y = 63;
 
-// 行ごとの横位置調整
-const int ROW_OFFSET_X[BOARD_ROWS] =
+// 左から縦一列の氷の個数
+// 1・4・5・6・5・6・5・4・1
+const int COLUMN_LENGTHS[BOARD_COLS] =
 {
-    0, 3, -2, 2, -3, 1
+    1, 4, 5, 6, 5, 6, 5, 4, 1
 };
+
+// 各列の開始インデックス
+const int COLUMN_STARTS[BOARD_COLS] =
+{
+    0, 1, 5, 10, 16, 21, 27, 32, 36
+};
+
+// 隣接判定の縦方向の許容値
+const int NEIGHBOR_Y_LIMIT = 32;
+
 
 // コンストラクタ
 Ice::Ice()
@@ -34,155 +45,188 @@ Ice::Ice()
         tiles[i].durability = 100;
         tiles[i].exists = true;
         tiles[i].chance = false;
+
+        // 色をランダムに決定
+        tiles[i].blue = (rand() % 2 == 0);
     }
 }
+
 
 // 初期化
 void Ice::Init()
 {
-    // 氷画像を読み込む
-    iceWhiteHandle = LoadGraph(_T("images/ice_white.png"));
-    iceBlueHandle = LoadGraph(_T("images/ice_blue.png"));
+    iceWhiteHandle =
+        LoadGraph(_T("images/ice_white.png"));
 
-    // ひび割れた氷画像を読み込む
+    iceBlueHandle =
+        LoadGraph(_T("images/ice_blue.png"));
+
     iceWhiteCrackedHandle =
         LoadGraph(_T("images/ice_white_cracked.png"));
 
     iceBlueCrackedHandle =
         LoadGraph(_T("images/ice_blue_cracked.png"));
 
-    // 氷の状態を初期化
     for (int i = 0; i < TILE_COUNT; i++)
     {
+        // 初期耐久値はすべて100
         tiles[i].durability = 100;
+
         tiles[i].exists = true;
         tiles[i].chance = false;
+
+        // 氷の色をランダムに決定
+        tiles[i].blue = (rand() % 2 == 0);
     }
 }
 
 // 氷の描画
 void Ice::Draw(int selectedIndex)
 {
-    for (int i = 0; i < TILE_COUNT; i++)
+    static int sparkleHandle =
+        LoadGraph(_T("images/chance_sparkle.png"));
+
+    // 2回に分けて描画
+    // 1回目：選択されていない氷
+    // 2回目：選択中の氷を最後に描画
+    for (int pass = 0; pass < 2; pass++)
     {
-        // 存在しない氷は描画しない
-        if (!tiles[i].exists)
+        for (int i = 0; i < TILE_COUNT; i++)
         {
-            continue;
-        }
-
-        int centerX = TileCenterX(i);
-        int centerY = TileCenterY(i);
-
-        int imageSize = ICE_IMAGE_SIZE;
-
-        // 選択中の氷は少し大きくする
-        if (i == selectedIndex)
-        {
-            imageSize = 92;
-        }
-
-        int drawX = centerX - imageSize / 2;
-        int drawY = centerY - imageSize / 2;
-
-        // 白い氷と青い氷を交互に使う
-        int imageHandle;
-
-        // 耐久値が80以下ならひび割れ画像
-        if (tiles[i].durability <= 80)
-        {
-            if (i % 2 == 0)
+            if (!tiles[i].exists)
             {
-                imageHandle = iceBlueCrackedHandle;
+                continue;
+            }
+
+            // 選択中の氷を最後に描画する
+            if (selectedIndex >= 0)
+            {
+                if (pass == 0 && i == selectedIndex)
+                {
+                    continue;
+                }
+
+                if (pass == 1 && i != selectedIndex)
+                {
+                    continue;
+                }
             }
             else
             {
-                imageHandle = iceWhiteCrackedHandle;
+                // 選択中の氷がない場合、2回目は描画しない
+                if (pass == 1)
+                {
+                    continue;
+                }
             }
-        }
-        // 耐久値が100なら通常画像
-        else
-        {
-            if (i % 2 == 0)
+
+            int centerX = TileCenterX(i);
+            int centerY = TileCenterY(i);
+
+            int imageSize = ICE_IMAGE_SIZE;
+
+            // 選択中の氷を少し大きくする
+            if (i == selectedIndex)
             {
-                imageHandle = iceBlueHandle;
+                imageSize = 92;
             }
+
+            int drawX = centerX - imageSize / 2;
+            int drawY = centerY - imageSize / 2;
+
+            int imageHandle = -1;
+
+            // ひび割れ画像
+            if (tiles[i].durability < 100)
+            {
+                if (tiles[i].blue)
+                {
+                    imageHandle = iceBlueCrackedHandle;
+                }
+                else
+                {
+                    imageHandle = iceWhiteCrackedHandle;
+                }
+            }
+            // 通常画像
             else
             {
-                imageHandle = iceWhiteHandle;
+                if (tiles[i].blue)
+                {
+                    imageHandle = iceBlueHandle;
+                }
+                else
+                {
+                    imageHandle = iceWhiteHandle;
+                }
             }
-        }
 
-        // 氷の画像を描画
-        if (imageHandle != -1)
-        {
-            DrawExtendGraph(
-                drawX,
-                drawY,
-                drawX + imageSize,
-                drawY + imageSize,
-                imageHandle,
-                TRUE
-            );
-        }
-        else
-        {
-            // 画像が読み込めなかった場合の仮表示
-            DrawCircle(
-                centerX,
-                centerY,
-                40,
-                GetColor(180, 230, 255),
-                TRUE
-            );
-        }
-
-        // 耐久値が100未満の場合に表示
-        if (tiles[i].durability < 100)
-        {
-            DrawFormatString(
-                centerX - 15,
-                centerY - 10,
-                GetColor(20, 50, 80),
-                _T("%d"),
-                tiles[i].durability
-            );
-        }
-
-        // チャンス氷のキラキラ演出
-        if (tiles[i].chance)
-        {
-            // キラキラ画像を読み込む（初回のみ）
-            static int sparkleHandle =
-                LoadGraph(_T("images/chance_sparkle.png"));
-
-            // キラキラ画像を氷の中央に描画
-            if (sparkleHandle != -1)
+            // 氷画像の描画
+            if (imageHandle != -1)
             {
                 DrawExtendGraph(
-                    centerX - 36,
-                    centerY - 36,
-                    centerX + 36,
-                    centerY + 36,
-                    sparkleHandle,
+                    drawX,
+                    drawY,
+                    drawX + imageSize,
+                    drawY + imageSize,
+                    imageHandle,
                     TRUE
                 );
             }
-        }
+            else
+            {
+                DrawCircle(
+                    centerX,
+                    centerY,
+                    40,
+                    GetColor(180, 230, 255),
+                    TRUE
+                );
+            }
 
-        // 選択中の氷を囲む
-        if (i == selectedIndex)
-        {
-            DrawCircle(
-                centerX,
-                centerY,
-                44,
-                GetColor(255, 230, 50),
-                FALSE
-            );
+            // 耐久値表示
+            if (tiles[i].durability < 100)
+            {
+                DrawFormatString(
+                    centerX - 15,
+                    centerY - 10,
+                    GetColor(20, 50, 80),
+                    _T("%d"),
+                    tiles[i].durability
+                );
+            }
+
+            // チャンス氷のキラキラ演出
+            if (tiles[i].chance)
+            {
+                if (sparkleHandle != -1)
+                {
+                    DrawExtendGraph(
+                        centerX - 36,
+                        centerY - 36,
+                        centerX + 36,
+                        centerY + 36,
+                        sparkleHandle,
+                        TRUE
+                    );
+                }
+            }
+
+            // 選択中の氷を黄色で囲む
+            if (i == selectedIndex)
+            {
+                DrawCircle(
+                    centerX,
+                    centerY,
+                    44,
+                    GetColor(255, 230, 50),
+                    FALSE
+                );
+            }
         }
     }
 }
+
 
 // マウス位置から氷を判定
 int Ice::HitTest(int mx, int my) const
@@ -197,13 +241,13 @@ int Ice::HitTest(int mx, int my) const
         int centerX = TileCenterX(i);
         int centerY = TileCenterY(i);
 
-        int dx = mx - centerX;
-        int dy = my - centerY;
+        int dx = abs(mx - centerX);
+        int dy = abs(my - centerY);
 
-        // 氷の範囲内か判定
-        if (abs(dx) <= 42 && abs(dy) <= 42)
+        // 六角形の範囲判定
+        if (dx <= 42 && dy <= 36)
         {
-            if (abs(dx) + abs(dy) * 0.6 <= 42)
+            if (dx + dy * 0.577 <= 42)
             {
                 return i;
             }
@@ -216,20 +260,23 @@ int Ice::HitTest(int mx, int my) const
 // 氷にダメージを与える
 void Ice::ApplyDamage(int index, int damage)
 {
+    // 番号が範囲外なら処理しない
     if (index < 0 || index >= TILE_COUNT)
     {
         return;
     }
 
+    // すでに消えている氷なら処理しない
     if (!tiles[index].exists)
     {
         return;
     }
 
+    // チャージインパクトの数値をダメージとして減算
     tiles[index].durability -= damage;
 
-    // 耐久値が80未満になると氷が消える
-    if (tiles[index].durability < 80)
+    // 現在耐久値が20以下になったら氷を崩す
+    if (tiles[index].durability <= 20)
     {
         RemoveTile(index);
     }
@@ -247,6 +294,7 @@ void Ice::RemoveTile(int index)
     tiles[index].chance = false;
 }
 
+
 // 氷が消えているか
 bool Ice::IsGone(int index) const
 {
@@ -258,6 +306,7 @@ bool Ice::IsGone(int index) const
     return !tiles[index].exists;
 }
 
+
 // チャンス氷か
 bool Ice::IsChance(int index) const
 {
@@ -268,6 +317,7 @@ bool Ice::IsChance(int index) const
 
     return tiles[index].chance;
 }
+
 
 // チャンス氷が存在するか
 bool Ice::HasChanceIce() const
@@ -283,10 +333,10 @@ bool Ice::HasChanceIce() const
     return false;
 }
 
+
 // チャンス氷をランダムに生成
 void Ice::SpawnChanceIce()
 {
-    // 既にチャンス氷がある場合は生成しない
     if (HasChanceIce())
     {
         return;
@@ -295,7 +345,6 @@ void Ice::SpawnChanceIce()
     int candidates[TILE_COUNT];
     int candidateCount = 0;
 
-    // 存在する氷を候補にする
     for (int i = 0; i < TILE_COUNT; i++)
     {
         if (tiles[i].exists)
@@ -305,17 +354,16 @@ void Ice::SpawnChanceIce()
         }
     }
 
-    // 候補がない場合
     if (candidateCount == 0)
     {
         return;
     }
 
-    // 候補からランダムに選ぶ
     int selected = candidates[rand() % candidateCount];
 
     tiles[selected].chance = true;
 }
+
 
 // 氷の列番号
 int Ice::TileX(int index) const
@@ -325,8 +373,20 @@ int Ice::TileX(int index) const
         return -1;
     }
 
-    return index % BOARD_COLS;
+    for (int x = 0; x < BOARD_COLS; x++)
+    {
+        int start = COLUMN_STARTS[x];
+        int end = start + COLUMN_LENGTHS[x];
+
+        if (index >= start && index < end)
+        {
+            return x;
+        }
+    }
+
+    return -1;
 }
+
 
 // 氷の行番号
 int Ice::TileY(int index) const
@@ -336,8 +396,20 @@ int Ice::TileY(int index) const
         return -1;
     }
 
-    return index / BOARD_COLS;
+    for (int x = 0; x < BOARD_COLS; x++)
+    {
+        int start = COLUMN_STARTS[x];
+        int end = start + COLUMN_LENGTHS[x];
+
+        if (index >= start && index < end)
+        {
+            return index - start;
+        }
+    }
+
+    return -1;
 }
+
 
 // 氷の中心X座標
 int Ice::TileCenterX(int index) const
@@ -348,13 +420,14 @@ int Ice::TileCenterX(int index) const
     }
 
     int x = TileX(index);
-    int y = TileY(index);
 
-    return ICE_START_X
-        + x * ICE_SPACE_X
-        + (y % 2) * 42
-        + ROW_OFFSET_X[y];
+    // 9列全体を中央に配置
+    int startX =
+        ICE_CENTER_X - (BOARD_COLS - 1) * ICE_SPACE_X / 2;
+
+    return startX + x * ICE_SPACE_X;
 }
+
 
 // 氷の中心Y座標
 int Ice::TileCenterY(int index) const
@@ -364,10 +437,18 @@ int Ice::TileCenterY(int index) const
         return 0;
     }
 
+    int x = TileX(index);
     int y = TileY(index);
 
-    return ICE_START_Y + y * ICE_SPACE_Y;
+    int columnLength = COLUMN_LENGTHS[x];
+
+    // 各列を中央に配置
+    int startY =
+        ICE_CENTER_Y - (columnLength - 1) * ICE_SPACE_Y / 2;
+
+    return startY + y * ICE_SPACE_Y;
 }
+
 
 // 氷が存在するか
 bool Ice::IsTilePresent(int index) const
@@ -379,6 +460,7 @@ bool Ice::IsTilePresent(int index) const
 
     return tiles[index].exists;
 }
+
 
 // 隣接する氷を取得
 void Ice::GetNeighbors(
@@ -397,68 +479,59 @@ void Ice::GetNeighbors(
     int x = TileX(index);
     int y = TileY(index);
 
-    // 同じ行の左右
-    if (x > 0)
+    // 同じ列の上
+    if (y > 0)
     {
         out[count++] = index - 1;
     }
 
-    if (x < BOARD_COLS - 1)
+    // 同じ列の下
+    if (y < COLUMN_LENGTHS[x] - 1)
     {
         out[count++] = index + 1;
     }
 
-    // 上下の行
-    if (y > 0)
+    // 左の列
+    if (x > 0)
     {
-        if (y % 2 == 0)
-        {
-            // 偶数行
-            if (x > 0)
-            {
-                out[count++] = index - BOARD_COLS - 1;
-            }
+        int targetX = x - 1;
 
-            out[count++] = index - BOARD_COLS;
-        }
-        else
+        for (int i = 0; i < COLUMN_LENGTHS[targetX]; i++)
         {
-            // 奇数行
-            out[count++] = index - BOARD_COLS;
+            int candidate = COLUMN_STARTS[targetX] + i;
 
-            if (x < BOARD_COLS - 1)
+            int dy =
+                abs(TileCenterY(index) - TileCenterY(candidate));
+
+            if (dy <= NEIGHBOR_Y_LIMIT && count < 6)
             {
-                out[count++] = index - BOARD_COLS + 1;
+                out[count++] = candidate;
             }
         }
     }
 
-    if (y < BOARD_ROWS - 1)
+    // 右の列
+    if (x < BOARD_COLS - 1)
     {
-        if (y % 2 == 0)
-        {
-            // 偶数行
-            if (x > 0)
-            {
-                out[count++] = index + BOARD_COLS - 1;
-            }
+        int targetX = x + 1;
 
-            out[count++] = index + BOARD_COLS;
-        }
-        else
+        for (int i = 0; i < COLUMN_LENGTHS[targetX]; i++)
         {
-            // 奇数行
-            out[count++] = index + BOARD_COLS;
+            int candidate = COLUMN_STARTS[targetX] + i;
 
-            if (x < BOARD_COLS - 1)
+            int dy =
+                abs(TileCenterY(index) - TileCenterY(candidate));
+
+            if (dy <= NEIGHBOR_Y_LIMIT && count < 6)
             {
-                out[count++] = index + BOARD_COLS + 1;
+                out[count++] = candidate;
             }
         }
     }
 }
 
-// 下の行まで安定して繋がっているか
+
+// 下側の支えまで安定して繋がっているか
 bool Ice::HasStablePath(int index) const
 {
     if (index < 0 || index >= TILE_COUNT)
@@ -484,8 +557,12 @@ bool Ice::HasStablePath(int index) const
     {
         int current = queue[head++];
 
-        // 最下段に到達したら安定
-        if (TileY(current) == BOARD_ROWS - 1)
+        int currentX = TileX(current);
+        int currentY = TileY(current);
+
+        // 最も下に位置する列の末端に到達したら安定
+        if (COLUMN_LENGTHS[currentX] == 6 &&
+            currentY == COLUMN_LENGTHS[currentX] - 1)
         {
             return true;
         }
@@ -525,7 +602,7 @@ bool Ice::HasStablePath(int index) const
 // 支えがなくなった氷を落下させる
 void Ice::ResolveCollapse(Penguin penguins[2])
 {
-    // penguinsの落下・敗北判定はGame側で行う
+    // ペンギンの落下・敗北判定はGame側で行う
     (void)penguins;
 
     bool changed = true;
@@ -541,12 +618,82 @@ void Ice::ResolveCollapse(Penguin penguins[2])
                 continue;
             }
 
-            // 下の段まで繋がっていない氷を消す
+            // 支えまで繋がっていない氷を消す
             if (!HasStablePath(i))
             {
                 RemoveTile(i);
                 changed = true;
             }
+        }
+    }
+}
+// 最後の一列が危険な形か判定
+bool Ice::IsUnsafeLastLine() const
+{
+    int selected[BOARD_COLS];
+
+    // 各列に残っている氷を調べる
+    for (int x = 0; x < BOARD_COLS; x++)
+    {
+        int count = 0;
+        selected[x] = -1;
+
+        int start = COLUMN_STARTS[x];
+        int end = start + COLUMN_LENGTHS[x];
+
+        for (int i = start; i < end; i++)
+        {
+            if (tiles[i].exists)
+            {
+                count++;
+                selected[x] = i;
+            }
+        }
+
+        // 各列に氷が1枚ずつ残っていなければ対象外
+        if (count != 1)
+        {
+            return false;
+        }
+    }
+
+    // ペンギンが乗っている氷が中央に残っているか
+    if (!tiles[18].exists || selected[4] != 18)
+    {
+        return false;
+    }
+
+    // 隣の列同士がつながっているか確認
+    for (int x = 0; x < BOARD_COLS - 1; x++)
+    {
+        int leftTile = selected[x];
+        int rightTile = selected[x + 1];
+
+        int dy = abs(
+            TileCenterY(leftTile) -
+            TileCenterY(rightTile)
+        );
+
+        // つながっていない場所があれば危険
+        if (dy > NEIGHBOR_Y_LIMIT)
+        {
+            return true;
+        }
+    }
+
+    // すべてつながっている場合は36通りの安全な形
+    return false;
+}
+
+
+// 盤面の氷をすべて消す
+void Ice::RemoveAllTiles()
+{
+    for (int i = 0; i < TILE_COUNT; i++)
+    {
+        if (tiles[i].exists)
+        {
+            RemoveTile(i);
         }
     }
 }

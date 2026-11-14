@@ -17,6 +17,7 @@ enum GameScene
     SCENE_MODE,
     SCENE_PLAY,
     SCENE_CHANCE_CHOICE,
+    SCENE_CHANCE_MISS,
     SCENE_GAMEOVER
 };
 
@@ -33,7 +34,7 @@ public:
 private:
     GameScene scene;
 
-    int mode; // 0: two-player, 1: CPU
+    int mode;
     int cpuDifficulty;
     int currentPlayer;
     int menuSelect;
@@ -54,7 +55,6 @@ private:
     int mouseX;
     int mouseY;
 
-    // ”wŒi‰æ‘œ
     int backgroundHandle;
 
     Ice ice;
@@ -74,6 +74,9 @@ private:
     void HandlePlay();
 
     void HandleChargeResult(int power, bool perfect);
+    void HandleChanceResult(int gauge);
 
     void CheckGameOver();
+
+    bool CheckUnsafeLastLine();
 };

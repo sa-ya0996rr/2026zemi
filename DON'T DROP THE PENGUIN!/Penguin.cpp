@@ -4,26 +4,24 @@
 #include <tchar.h>
 
 Penguin::Penguin()
-    : x(0),
-    y(0),
+    : tileIndex(-1),
     imageHandle(-1)
-{
-}
+{}
 
 // 画像の読み込み
 bool Penguin::Init()
 {
     imageHandle = LoadGraph(_T("images/penguin.png"));
 
-    printfDx(_T("Penguin Image Handle: %d\n"), imageHandle);
+    //printfDx(_T("Penguin Image Handle: %d\n"), imageHandle);
 
-    if (imageHandle == -1)
-    {
-        printfDx(_T("Penguin image load failed!\n"));
-        return false;
-    }
+    //if (imageHandle == -1)
+    //{
+    //    printfDx(_T("Penguin image load failed!\n"));
+    //    return false;
+    //}
 
-    printfDx(_T("Penguin image load success!\n"));
+    //printfDx(_T("Penguin image load success!\n"));
 
     return true;
 }
@@ -39,22 +37,31 @@ void Penguin::Release()
 }
 
 // ペンギンの位置を設定
-void Penguin::SetPosition(int px, int py)
+void Penguin::SetPosition(int index)
 {
-    x = px;
-    y = py;
+    tileIndex = index;
 }
 
-// ペンギンが指定された氷のタイルの上にいるか判定
-bool Penguin::IsOnTile(int i, const Ice& ice) const
+// ペンギンが指定された氷の上にいるか判定
+bool Penguin::IsOnTile(int index, const Ice& ice) const
 {
-    return i == y * BOARD_COLS + x;
+    if (HasFallen(ice))
+    {
+        return false;
+    }
+
+    return tileIndex == index;
 }
 
 // ペンギンが落下しているか判定
 bool Penguin::HasFallen(const Ice& ice) const
 {
-    return !ice.IsTilePresent(y * BOARD_COLS + x);
+    if (tileIndex < 0 || tileIndex >= TILE_COUNT)
+    {
+        return true;
+    }
+
+    return !ice.IsTilePresent(tileIndex);
 }
 
 // ペンギンを描画
@@ -72,12 +79,9 @@ void Penguin::Draw(const Ice& ice, int player) const
         return;
     }
 
-    // ペンギンの位置に対応するタイルのインデックス
-    int i = y * BOARD_COLS + x;
-
     // タイルの中心座標
-    int cx = ice.TileCenterX(i);
-    int cy = ice.TileCenterY(i);
+    int cx = ice.TileCenterX(tileIndex);
+    int cy = ice.TileCenterY(tileIndex);
 
     // ペンギン画像の描画サイズ
     int width = 60;

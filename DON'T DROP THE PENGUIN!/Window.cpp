@@ -352,6 +352,7 @@ void Window::DrawPlay(
 }
 
 // チャンス氷の選択画面
+
 void Window::DrawChanceChoice()
 {
     DrawPanel(180, 250, 820, 550, 230);
@@ -363,14 +364,32 @@ void Window::DrawChanceChoice()
     );
 
     Center(
-        360,
-        _T("ENTER = GET SKIP TICKET"),
+        350,
+        _T("GET SKIP TICKET?"),
         GetColor(230, 245, 255)
     );
 
+    // YES
+    DrawPanel(250, 400, 470, 480, 220);
+
     Center(
-        430,
-        _T("CLICK RIGHT SIDE = NO"),
+        420,
+        _T("YES"),
+        GetColor(100, 255, 150)
+    );
+
+    // NO
+    DrawPanel(530, 400, 750, 480, 220);
+
+    Center(
+        420,
+        _T("NO"),
+        GetColor(255, 220, 100)
+    );
+
+    Center(
+        500,
+        _T("CLICK LEFT = YES / RIGHT = NO"),
         GetColor(230, 245, 255)
     );
 }
@@ -412,4 +431,14 @@ void Window::DrawGameOver(int winner)
         _T("PRESS ENTER TO RETURN TO TITLE"),
         GetColor(230, 245, 255)
     );
+}
+
+// チャンスアイス失敗画面
+void Window::DrawChanceMiss()
+{
+    DrawPanel(180, 250, 820, 550, 230);
+
+    Center(310, _T("CHANCE ICE!"), GetColor(255, 255, 255));
+    Center(370, _T("MISS!"), GetColor(255, 80, 80));
+    Center(440, _T("PRESS ENTER TO CONTINUE"), GetColor(220, 220, 220));
 }

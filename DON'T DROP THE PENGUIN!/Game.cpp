@@ -2,6 +2,7 @@
 #include "Game.h"
 #include <tchar.h>
 
+// コンストラクタ
 Game::Game()
     : scene(SCENE_TITLE),
     mode(0),
@@ -21,16 +22,13 @@ Game::Game()
     mouseX(0),
     mouseY(0),
     backgroundHandle(-1)
-{
-}
+{}
 
 // 終了処理
 Game::~Game()
 {
-    // ペンギン画像の解放
     penguins[0].Release();
 
-    // 背景画像の解放
     if (backgroundHandle != -1)
     {
         DeleteGraph(backgroundHandle);
@@ -41,39 +39,32 @@ Game::~Game()
 // 初期化
 void Game::Init()
 {
-    // 背景画像の読み込み
     backgroundHandle = LoadGraph(_T("images/background.png"));
 
-    // 氷の初期化
     ice.Init();
 
-    // ペンギン画像の読み込み
     penguins[0].Init();
 
-    // ペンギンの初期位置
-    penguins[0].SetPosition(2, 5);
+    penguins[0].SetPosition(15);
 }
 
 // 試合開始
 void Game::StartMatch()
 {
-    // 氷を初期状態に戻す
     ice.Init();
 
-    // ペンギンの初期位置
-    penguins[0].SetPosition(2, 5);
+    penguins[0].SetPosition(18);
 
-    // プレイヤー情報をリセット
     players[0].Reset();
+    players[1].Reset();
 
-    // 試合情報をリセット
     currentPlayer = 0;
     turn = 0;
     winner = -1;
+
     pendingChance = false;
     pendingTile = -1;
 
-    // ゲーム画面へ移動
     scene = SCENE_PLAY;
 }
 
@@ -102,22 +93,67 @@ void Game::Update()
         break;
 
     case SCENE_CHANCE_CHOICE:
-        if ((enter && !previousEnter) ||
-            (mouse && !previousMouse))
-        {
-            int mx, my;
-            GetMousePoint(&mx, &my);
+    {
+        int mx, my;
+        GetMousePoint(&mx, &my);
 
-            if (enter || mx < 500)
-            {
-                players[currentPlayer].SetTicket(true);
-            }
+        // EnterキーはYES
+        if (enter && !previousEnter)
+        {
+            // スキップ札を獲得
+            players[currentPlayer].SetTicket(true);
 
             pendingChance = false;
+            pendingTile = -1;
+
+            // YESなのでターン交代
             currentPlayer = 1 - currentPlayer;
             turn++;
 
+            scene = SCENE_PLAY;
+        }
+        // マウスクリック
+        else if (mouse && !previousMouse)
+        {
+            // 左側をクリック：YES
+            if (mx < 500)
+            {
+                players[currentPlayer].SetTicket(true);
+
+                pendingChance = false;
+                pendingTile = -1;
+
+                currentPlayer = 1 - currentPlayer;
+                turn++;
+
+                scene = SCENE_PLAY;
+            }
+            // 右側をクリック：NO
+            else
+            {
+                // スキップ札は獲得しない
+                pendingChance = false;
+                pendingTile = -1;
+
+                // ターン交代しない
+                // 同じプレイヤーが通常の氷を壊す
+                scene = SCENE_PLAY;
+            }
+        }
+        break;
+    }
+
+    case SCENE_CHANCE_MISS:
+        // MISS画面から次のターンへ
+        if ((enter && !previousEnter) ||
+            (mouse && !previousMouse))
+        {
+            pendingChance = false;
             pendingTile = -1;
+
+            currentPlayer = 1 - currentPlayer;
+            turn++;
+
             scene = SCENE_PLAY;
         }
         break;
@@ -159,7 +195,6 @@ void Game::HandleTitle()
         menuSelect = (menuSelect + 1) % 3;
     }
 
-    // マウス選択位置
     for (int i = 0; i < 3; i++)
     {
         int top = 440 + i * 55;
@@ -188,22 +223,15 @@ void Game::HandleTitle()
 
     if (decide)
     {
-        // 2 PLAYERを選択した場合
         if (menuSelect == 0)
         {
             mode = 0;
-
-            // 難易度選択を飛ばしてゲーム開始
             StartMatch();
         }
-        // CPU BATTLEを選択した場合
         else if (menuSelect == 1)
         {
             mode = 1;
-
-            // CPU難易度選択画面へ
             scene = SCENE_MODE;
-
             menuSelect = 0;
         }
     }
@@ -230,7 +258,6 @@ void Game::HandleMode()
         menuSelect = (menuSelect + 1) % 3;
     }
 
-    // マウス選択位置
     for (int i = 0; i < 3; i++)
     {
         int top = 350 + i * 60;
@@ -282,6 +309,7 @@ void Game::HandlePlay()
 {
     cpuTurn = (mode == 1 && currentPlayer == 1);
 
+    // CPUのターン
     if (cpuTurn)
     {
         int tile = cpu.ChooseTile(ice, penguins, cpuDifficulty);
@@ -297,11 +325,23 @@ void Game::HandlePlay()
         {
             ice.RemoveTile(tile);
             players[1].SetTicket(true);
+
+            if (CheckUnsafeLastLine())
+            {
+                return;
+            }
         }
 
         int power = cpu.RollPower(cpuDifficulty);
 
         ice.ApplyDamage(tile, power);
+
+        // 危険な最後の一列か判定
+        if (CheckUnsafeLastLine())
+        {
+            return;
+        }
+
         ice.ResolveCollapse(penguins);
 
         effect.Trigger();
@@ -322,6 +362,7 @@ void Game::HandlePlay()
 
     int tile = ice.HitTest(mx, my);
 
+    // 氷をクリックしてチャージ開始
     if ((GetMouseInput() & MOUSE_INPUT_LEFT) &&
         !previousMouse &&
         tile >= 0)
@@ -335,21 +376,33 @@ void Game::HandlePlay()
         pendingTile = tile;
 
         charge.Start(false);
-
-        scene = SCENE_PLAY;
     }
 
+    // チャージ中
     if (charge.IsRunning())
     {
         if (CheckHitKey(KEY_INPUT_SPACE) && !previousSpace)
         {
-            int power = charge.Stop();
+            // チャンス氷の場合
+            if (pendingTile >= 0 &&
+                ice.IsChance(pendingTile))
+            {
+                int gauge = charge.StopGauge();
 
-            HandleChargeResult(power, power >= 100);
+                HandleChanceResult(gauge);
+            }
+            // 通常氷の場合
+            else
+            {
+                int power = charge.Stop();
+
+                HandleChargeResult(power, power >= 100);
+            }
         }
     }
     else
     {
+        // チャンス氷の出現
         if (turn > 0 &&
             !ice.HasChanceIce() &&
             GetRand(99) < 20)
@@ -359,7 +412,7 @@ void Game::HandlePlay()
     }
 }
 
-// チャージ結果
+// 通常氷のチャージ結果
 void Game::HandleChargeResult(int power, bool perfect)
 {
     if (pendingTile < 0)
@@ -367,19 +420,18 @@ void Game::HandleChargeResult(int power, bool perfect)
         return;
     }
 
-    bool chance = ice.IsChance(pendingTile);
-
     ice.ApplyDamage(pendingTile, power);
+
+    // 危険な最後の一列か判定
+    if (CheckUnsafeLastLine())
+    {
+        pendingTile = -1;
+        return;
+    }
+
     ice.ResolveCollapse(penguins);
 
     effect.Trigger();
-
-    if (chance && ice.IsGone(pendingTile))
-    {
-        pendingChance = true;
-        scene = SCENE_CHANCE_CHOICE;
-        return;
-    }
 
     CheckGameOver();
 
@@ -390,6 +442,52 @@ void Game::HandleChargeResult(int power, bool perfect)
     }
 
     pendingTile = -1;
+}
+
+// チャンス氷のチャージ結果
+void Game::HandleChanceResult(int gauge)
+{
+    if (pendingTile < 0)
+    {
+        return;
+    }
+
+    // チャンス氷を消す
+    ice.RemoveTile(pendingTile);
+
+    // 危険な最後の一列か判定
+    if (CheckUnsafeLastLine())
+    {
+        pendingTile = -1;
+        return;
+    }
+
+    ice.ResolveCollapse(penguins);
+
+    effect.Trigger();
+
+    CheckGameOver();
+
+    if (scene == SCENE_GAMEOVER)
+    {
+        pendingTile = -1;
+        return;
+    }
+
+    // 95%以上ならYES / NOの選択画面へ
+    if (gauge >= 950)
+    {
+        pendingChance = true;
+
+        scene = SCENE_CHANCE_CHOICE;
+    }
+    // 95%未満ならMISS
+    else
+    {
+        pendingChance = true;
+
+        scene = SCENE_CHANCE_MISS;
+    }
 }
 
 // ゲームオーバー判定
@@ -414,20 +512,32 @@ void Game::Draw()
         window.DrawMode(menuSelect);
     }
     else if (scene == SCENE_PLAY ||
-        scene == SCENE_CHANCE_CHOICE)
+        scene == SCENE_CHANCE_CHOICE ||
+        scene == SCENE_CHANCE_MISS)
     {
         window.DrawBackground();
 
         ice.Draw(charge.IsRunning() ? pendingTile : -1);
 
-        // ペンギン画像を描画
+        // ペンギン描画
         penguins[0].Draw(ice, 0);
 
-        window.DrawPlay(currentPlayer, mode, players, turn, charge);
+        window.DrawPlay(
+            currentPlayer,
+            mode,
+            players,
+            turn,
+            charge
+        );
 
         if (scene == SCENE_CHANCE_CHOICE)
         {
             window.DrawChanceChoice();
+        }
+
+        if (scene == SCENE_CHANCE_MISS)
+        {
+            window.DrawChanceMiss();
         }
     }
     else
@@ -436,4 +546,24 @@ void Game::Draw()
     }
 
     effect.Draw();
+}
+// 危険な最後の一列を判定
+bool Game::CheckUnsafeLastLine()
+{
+    if (!ice.IsUnsafeLastLine())
+    {
+        return false;
+    }
+
+    // 危険な一列なので全氷を崩す
+    ice.RemoveAllTiles();
+
+    ice.ResolveCollapse(penguins);
+
+    effect.Trigger();
+
+    // ペンギン落下によるゲームオーバー判定
+    CheckGameOver();
+
+    return true;
 }

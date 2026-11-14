@@ -1,17 +1,22 @@
+
 #pragma once
 
 #include "DxLib.h"
 #include "Penguin.h"
 
-const int BOARD_COLS = 7;
-const int BOARD_ROWS = 6;
-const int TILE_COUNT = BOARD_COLS * BOARD_ROWS;
+// 37–‡‚Ì˜ZŠpŒ`”Õ–Ê
+const int BOARD_COLS = 9;
+const int BOARD_ROWS = 7;
+const int TILE_COUNT = 37;
 
 struct IceTile
 {
     int durability;
     bool exists;
     bool chance;
+
+    // •X‚ÌFitrue = ÂAfalse = ”’j
+    bool blue;
 };
 
 class Ice
@@ -43,14 +48,18 @@ public:
 
     bool IsTilePresent(int index) const;
 
+    // ÅŒã‚Ìˆê—ñ‚ªŠëŒ¯‚ÈŒ`‚©”»’è
+    bool IsUnsafeLastLine() const;
+
+    // ”Õ–Ê‚Ì•X‚ğ‚·‚×‚ÄÁ‚·
+    void RemoveAllTiles(); 
+
 private:
     IceTile tiles[TILE_COUNT];
 
-    // ’Êí‚Ì•X‰æ‘œ
     int iceWhiteHandle;
     int iceBlueHandle;
 
-    // ‚Ğ‚ÑŠ„‚ê‚½•X‰æ‘œ
     int iceWhiteCrackedHandle;
     int iceBlueCrackedHandle;
 
