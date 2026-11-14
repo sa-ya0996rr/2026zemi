@@ -8,10 +8,11 @@
 // 氷の画像サイズ
 const int ICE_IMAGE_SIZE = 84;
 
-// 氷の配置位置
-const int ICE_START_X = 105;
-const int ICE_START_Y = 95;
+// 氷の配置位置（1000×800画面の中央寄り）
+const int ICE_START_X = 225;
+const int ICE_START_Y = 125;
 
+// 氷同士の間隔
 const int ICE_SPACE_X = 85;
 const int ICE_SPACE_Y = 75;
 

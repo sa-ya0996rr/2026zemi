@@ -27,7 +27,6 @@ Game::Game()
 // 初期化
 void Game::Init()
 {
-    // 背景画像を読み込む
     backgroundHandle = LoadGraph(_T("images/background.png"));
 
     ice.Init();
@@ -53,7 +52,7 @@ void Game::StartMatch()
     scene = SCENE_PLAY;
 }
 
-// 更新処理
+// 更新
 void Game::Update()
 {
     int enter = CheckHitKey(KEY_INPUT_RETURN);
@@ -84,7 +83,7 @@ void Game::Update()
             int mx, my;
             GetMousePoint(&mx, &my);
 
-            if (enter || mx < 400)
+            if (enter || mx < 500)
             {
                 players[currentPlayer].SetTicket(true);
             }
@@ -93,6 +92,7 @@ void Game::Update()
             currentPlayer = 1 - currentPlayer;
             turn++;
 
+            pendingTile = -1;
             scene = SCENE_PLAY;
         }
         break;
@@ -124,7 +124,6 @@ void Game::HandleTitle()
     bool mouseClick = mouse && !previousMouse;
     bool enterClick = CheckHitKey(KEY_INPUT_RETURN) && !previousEnter;
 
-    // キーボード操作
     if (CheckHitKey(KEY_INPUT_UP) && !previousUp)
     {
         menuSelect = (menuSelect + 2) % 3;
@@ -135,28 +134,27 @@ void Game::HandleTitle()
         menuSelect = (menuSelect + 1) % 3;
     }
 
-    // マウス位置で選択項目を変更
+    // マウス選択位置
     for (int i = 0; i < 3; i++)
     {
-        int top = 300 + i * 55;
-        int bottom = 345 + i * 55;
+        int top = 440 + i * 55;
+        int bottom = 485 + i * 55;
 
-        if (mx >= 245 && mx <= 555 &&
+        if (mx >= 350 && mx <= 650 &&
             my >= top && my <= bottom)
         {
             menuSelect = i;
         }
     }
 
-    // マウスクリックまたはEnterで決定
     bool decide = enterClick;
 
     if (mouseClick)
     {
-        int top = 300 + menuSelect * 55;
-        int bottom = 345 + menuSelect * 55;
+        int top = 440 + menuSelect * 55;
+        int bottom = 485 + menuSelect * 55;
 
-        if (mx >= 245 && mx <= 555 &&
+        if (mx >= 350 && mx <= 650 &&
             my >= top && my <= bottom)
         {
             decide = true;
@@ -165,27 +163,28 @@ void Game::HandleTitle()
 
     if (decide)
     {
+        // 2 PLAYERを選択した場合
         if (menuSelect == 0)
         {
             mode = 0;
-            scene = SCENE_MODE;
-            menuSelect = 0;
+
+            // 難易度選択を飛ばしてゲーム開始
+            StartMatch();
         }
+        // CPU BATTLEを選択した場合
         else if (menuSelect == 1)
         {
             mode = 1;
+
+            // CPU難易度選択画面へ
             scene = SCENE_MODE;
+
             menuSelect = 0;
-        }
-        else
-        {
-            scene = SCENE_GAMEOVER;
-            winner = -2;
         }
     }
 }
 
-// CPUモード選択画面
+// CPU難易度選択
 void Game::HandleMode()
 {
     int mx, my;
@@ -196,7 +195,6 @@ void Game::HandleMode()
     bool mouseClick = mouse && !previousMouse;
     bool enterClick = CheckHitKey(KEY_INPUT_RETURN) && !previousEnter;
 
-    // キーボード操作
     if (CheckHitKey(KEY_INPUT_UP) && !previousUp)
     {
         menuSelect = (menuSelect + 2) % 3;
@@ -207,28 +205,27 @@ void Game::HandleMode()
         menuSelect = (menuSelect + 1) % 3;
     }
 
-    // マウス位置で選択項目を変更
+    // マウス選択位置
     for (int i = 0; i < 3; i++)
     {
-        int top = 250 + i * 60;
-        int bottom = 295 + i * 60;
+        int top = 350 + i * 60;
+        int bottom = 395 + i * 60;
 
-        if (mx >= 250 && mx <= 550 &&
+        if (mx >= 350 && mx <= 650 &&
             my >= top && my <= bottom)
         {
             menuSelect = i;
         }
     }
 
-    // マウスクリックまたはEnterで決定
     bool decide = enterClick;
 
     if (mouseClick)
     {
-        int top = 250 + menuSelect * 60;
-        int bottom = 295 + menuSelect * 60;
+        int top = 350 + menuSelect * 60;
+        int bottom = 395 + menuSelect * 60;
 
-        if (mx >= 250 && mx <= 550 &&
+        if (mx >= 350 && mx <= 650 &&
             my >= top && my <= bottom)
         {
             decide = true;
@@ -240,24 +237,22 @@ void Game::HandleMode()
         if (menuSelect == 0)
         {
             cpuDifficulty = 0;
-            StartMatch();
         }
         else if (menuSelect == 1)
         {
             cpuDifficulty = 1;
-            StartMatch();
         }
         else
         {
             cpuDifficulty = 2;
-            StartMatch();
         }
 
+        StartMatch();
         menuSelect = 0;
     }
 }
 
-// ゲーム中の処理
+// ゲーム中
 void Game::HandlePlay()
 {
     cpuTurn = (mode == 1 && currentPlayer == 1);
@@ -382,48 +377,37 @@ void Game::CheckGameOver()
     }
 }
 
-// 描画処理
-
+// 描画
 void Game::Draw()
 {
-    // タイトル画面
     if (scene == SCENE_TITLE)
     {
         window.DrawTitle(menuSelect);
     }
-    // CPU難易度選択画面
     else if (scene == SCENE_MODE)
     {
         window.DrawMode(menuSelect);
     }
-    // ゲームプレイ画面
     else if (scene == SCENE_PLAY ||
         scene == SCENE_CHANCE_CHOICE)
     {
-        // 背景はWindow側で描画
         window.DrawBackground();
 
-        // 氷を描画
         ice.Draw(charge.IsRunning() ? pendingTile : -1);
 
-        // ペンギンを描画
         penguins[0].Draw(ice, 0);
 
-        // UIを描画
-        window.DrawPlay(currentPlayer, players, turn, charge);
+        window.DrawPlay(currentPlayer, mode, players, turn, charge);
 
-        // チャンス氷の選択画面
         if (scene == SCENE_CHANCE_CHOICE)
         {
             window.DrawChanceChoice();
         }
     }
-    // ゲームオーバー画面
     else
     {
         window.DrawGameOver(winner);
     }
 
-    // エフェクトを描画
     effect.Draw();
 }

@@ -3,10 +3,9 @@
 #include "DxLib.h"
 #include <tchar.h>
 
-// 背景画像を描画する
+// 背景画像
 void Window::DrawBackground()
 {
-    // 背景画像を最初の1回だけ読み込む
     static int backgroundHandle = -1;
     static bool loaded = false;
 
@@ -16,29 +15,27 @@ void Window::DrawBackground()
         loaded = true;
     }
 
-    // 背景画像が読み込めた場合
     if (backgroundHandle != -1)
     {
         DrawExtendGraph(
             0, 0,
-            800, 600,
+            1000, 800,
             backgroundHandle,
             TRUE
         );
     }
     else
     {
-        // 画像が読み込めない場合の背景
         DrawBox(
             0, 0,
-            800, 600,
+            1000, 800,
             GetColor(30, 80, 130),
             TRUE
         );
     }
 }
 
-// 半透明パネルを描画する
+// 半透明パネル
 void Window::DrawPanel(
     int x1, int y1,
     int x2, int y2,
@@ -46,7 +43,6 @@ void Window::DrawPanel(
 {
     SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
 
-    // 暗い青色の半透明パネル
     DrawBox(
         x1, y1,
         x2, y2,
@@ -56,7 +52,6 @@ void Window::DrawPanel(
 
     SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 
-    // パネルの枠線
     DrawBox(
         x1, y1,
         x2, y2,
@@ -65,116 +60,97 @@ void Window::DrawPanel(
     );
 }
 
-// 文字を中央に描画する
+// 文字を画面中央に表示
 void Window::Center(int y, const TCHAR* text, int color)
 {
-    // 文字列が存在しない場合は処理しない
     if (text == nullptr)
     {
         return;
     }
 
-    // 文字列の幅を取得
+    // 文字サイズを30に設定
+    SetFontSize(30);
+
     int w = GetDrawStringWidth(
         text,
         (int)_tcslen(text),
-        24
+        30
     );
 
-    // 画面中央に描画
-    DrawString((800 - w) / 2, y, text, color);
+    DrawString(
+        (1000 - w) / 2,
+        y,
+        text,
+        color
+    );
 }
+
 // タイトル画面
 void Window::DrawTitle(int select)
 {
-    // 背景
     DrawBackground();
 
     // タイトル部分のパネル
-    DrawPanel(140, 40, 660, 235, 190);
+    DrawPanel(180, 150, 820, 370, 190);
 
     // メニュー部分のパネル
-    DrawPanel(220, 280, 580, 470, 190);
+    DrawPanel(300, 410, 700, 590, 190);
 
-    // タイトル文字
     Center(
-        65,
+        250,
         _T("DON'T DROP THE PENGUIN!"),
         GetColor(220, 245, 255)
     );
 
-    Center(
-        180,
-        _T("PENGUIN ICE BATTLE"),
-        GetColor(190, 225, 255)
-    );
-
-    // マウスカーソルの位置を取得
     int mouseX, mouseY;
     GetMousePoint(&mouseX, &mouseY);
 
-    // 選択肢
     const TCHAR* options[] =
     {
         _T("2 PLAYER"),
         _T("CPU BATTLE"),
-        _T("EXIT")
     };
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 2; i++)
     {
-        int top = 300 + i * 55;
-        int bottom = 345 + i * 55;
+        int top = 435 + i * 70;     //  top　 = 枠の上の位置　枠を30ピクセル下に動かしたのなら440→470　450×-2
+        int bottom = 500 + i * 70;  // bottom = 枠の下の位置　枠を30ピクセル下に動かしたのなら485→515　505×-2
 
-        // カーソルが選択肢の枠内にあるか確認
         bool mouseInside =
-            mouseX >= 245 &&
-            mouseX <= 555 &&
+            mouseX >= 350 &&
+            mouseX <= 650 &&
             mouseY >= top &&
             mouseY <= bottom;
 
-        // selectが一致し、さらにカーソルが枠内にある場合だけ色を表示
         if (i == select && mouseInside)
         {
-            SetDrawBlendMode(DX_BLENDMODE_ALPHA, 220);
+            SetDrawBlendMode(DX_BLENDMODE_ALPHA, 220);  // 枠の透明度
 
             DrawBox(
-                245,
-                top,
-                555,
-                bottom,
-                GetColor(80, 175, 225),
+                350, top,                   // 350→枠の左端　  top →枠の上端
+                650, bottom,                // 650→枠の右端　bottom→枠の下端
+                GetColor(80, 175, 225),     // 枠の色
                 TRUE
             );
 
             SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
         }
 
-        // 選択肢の文字
         Center(
-            305 + i * 55,
+            455 + i * 65,// 455→文字の現在のY座標　数字上→文字下、数字下→文字上　i*55→2 PLAYERとCPU BATTLEの間隔
             options[i],
             GetColor(240, 250, 255)
         );
     }
 }
 
-// CPU難易度選択画面
+// CPU難易度選択
 void Window::DrawMode(int select)
 {
-    // 背景
     DrawBackground();
 
-    // メニュー全体のパネル
-    DrawPanel(220, 80, 580, 500, 200);
+    DrawPanel(300, 260, 700, 550, 200);
 
-    Center(
-        100,
-        _T("CPU DIFFICULTY"),
-        GetColor(220, 245, 255)
-    );
-
-    // マウスカーソルの位置を取得
     int mouseX, mouseY;
     GetMousePoint(&mouseX, &mouseY);
 
@@ -187,26 +163,22 @@ void Window::DrawMode(int select)
 
     for (int i = 0; i < 3; i++)
     {
-        int top = 250 + i * 60;
-        int bottom = 295 + i * 60;
+        int top = 358 + i * 60;
+        int bottom = 402 + i * 60;
 
-        // カーソルが選択肢の枠内にあるか確認
         bool mouseInside =
-            mouseX >= 250 &&
-            mouseX <= 550 &&
+            mouseX >= 350 &&
+            mouseX <= 650 &&
             mouseY >= top &&
             mouseY <= bottom;
 
-        // selectが一致し、さらにカーソルが枠内にある場合だけ色を表示
         if (i == select && mouseInside)
         {
             SetDrawBlendMode(DX_BLENDMODE_ALPHA, 220);
 
             DrawBox(
-                250,
-                top,
-                550,
-                bottom,
+                350, top,
+                650, bottom,
                 GetColor(80, 175, 225),
                 TRUE
             );
@@ -214,135 +186,195 @@ void Window::DrawMode(int select)
             SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
         }
 
-        // 選択肢の文字
         Center(
-            255 + i * 60,
+            365 + i * 60,
             options[i],
             GetColor(240, 250, 255)
         );
     }
 
     Center(
-        500,
+        300,// 590→文字の現在のY座標　数字上→文字下、数字下→文字上
         _T("SELECT CPU DIFFICULTY"),
         GetColor(190, 225, 255)
     );
 }
 
-// ゲーム画面の情報表示
+// ゲーム画面UI
 void Window::DrawPlay(
     int current,
+    int mode,
     Player players[2],
     int turn,
-    ChargeImpact& charge)
+    ChargeImpact& charge) 
 {
-    // 情報表示部分のパネル
-    DrawPanel(0, 455, 800, 590, 190);
+    DrawPanel(0, 720, 1000, 790, 190);
 
-    // プレイヤーのターン
+    // ターン表示（左側）
     DrawString(
-        10, 510,
+        30, 740,
         current == 0
         ? _T("PLAYER 1 TURN")
-        : _T("PLAYER 2 / CPU TURN"),
+        : (mode == 0
+            ? _T("PLAYER 2 TURN")
+            : _T("CPU TURN")),
         GetColor(240, 250, 255)
     );
 
-    // ターン数
-    DrawFormatString(
-        10, 535,
-        GetColor(240, 250, 255),
-        _T("TURN: %d"),
-        turn + 1
-    );
+    // P1のターン
+    if (current == 0)
+    {
+        DrawFormatString(
+            650, 740,
+            GetColor(240, 250, 255),
+            _T("P1 TICKET: %s"),
+            players[0].HasTicket()
+            ? _T("YES")
+            : _T("NO")
+        );
+    }
+    // P2 / CPUのターン
+    else
+    {
+        DrawFormatString(
+            650, 675,
+            GetColor(240, 250, 255),
+            _T("P2 TICKET: %s"),
+            players[1].HasTicket()
+            ? _T("YES")
+            : _T("NO")
+        );
+    }
 
-    // チケット情報
-    DrawFormatString(
-        10, 560,
-        GetColor(240, 250, 255),
-        _T("P1 TICKET: %s"),
-        players[0].HasTicket()
-        ? _T("YES")
-        : _T("NO")
-    );
-
-    DrawFormatString(
-        250, 560,
-        GetColor(240, 250, 255),
-        _T("P2 TICKET: %s"),
-        players[1].HasTicket()
-        ? _T("YES")
-        : _T("NO")
-    );
-
-    // チャージ中
+    // チャージインパクト
+    // チャージインパクトが実行中か確認する
+    // 実行中の時だけ、ゲージや説明文字を表示する
     if (charge.IsRunning())
     {
-        DrawPanel(230, 460, 570, 530, 220);
+        // チャージインパクトの背景パネル
+        DrawPanel(300, 630, 1000, 710, 220); // 左端のX座標,上側のY座標,右側のX座標,下端のY座標,パネルの透明度
 
-        // チャージゲージの背景
+        // ゲージの最大値
+        const int MAX_GAUGE = 1000;
+
+        // ゲージの中央位置
+        const int CENTER_X = 650;
+
+        // ゲージの最大幅（左右それぞれ）
+        const int MAX_WIDTH = 320;
+
+        // ゲージの高さ
+        const int GAUGE_TOP = 680;
+        const int GAUGE_BOTTOM = 700;
+
+        // 現在のゲージ値を取得
+        int gauge = charge.GetGauge();
+
+        // ゲージの値を幅に変換
+        int gaugeWidth = gauge * MAX_WIDTH / MAX_GAUGE;
+
+        // ゲージの背景（黒）
         DrawBox(
-            250, 500,
-            550, 520,
-            GetColor(40, 40, 40),
+            CENTER_X - MAX_WIDTH,
+            GAUGE_TOP,
+            CENTER_X + MAX_WIDTH,
+            GAUGE_BOTTOM,
+            GetColor(40, 40, 40),// 黒に近い灰色
+            TRUE                 // 塗りつぶし
+        );
+
+        // --------------------------------
+        // ゲージの色を設定
+        // 白 → 黄色 → 橙色 → 赤色
+        // --------------------------------
+
+        int red = 255;
+        int green = 255;
+        int blue = 255;
+
+        // 50％以下：白から黄色へ
+        if (gauge <= 500)
+        {
+            red = 255;
+            green = 255 - (35 * gauge / 500);
+            blue = 255 - (215 * gauge / 500);
+        }
+        // 50％～70％：黄色から橙色へ
+        else if (gauge <= 700)
+        {
+            int rate = gauge - 500;
+
+            red = 255;
+            green = 220 - (90 * rate / 200);
+            blue = 40 - (40 * rate / 200);
+        }
+        // 70％～100％：橙色から赤色へ
+        else
+        {
+            int rate = gauge - 700;
+
+            red = 255;
+            green = 130 - (130 * rate / 300);
+            blue = 0;
+        }
+
+        // ゲージの色
+        int gaugeColor = GetColor(red, green, blue);
+
+        // 中央から左右に広がるゲージ
+        DrawBox(
+            CENTER_X - gaugeWidth,
+            GAUGE_TOP,
+            CENTER_X + gaugeWidth,
+            GAUGE_BOTTOM,
+            gaugeColor,
             TRUE
         );
 
-        // チャージゲージ
-        DrawBox(
-            250, 500,
-            250 + charge.GetGauge() / 3,
-            520,
-            GetColor(255, 220, 40),
-            TRUE
-        );
-
+        // 説明文字
         DrawString(
-            250, 475,
+            330, 645,                   // 文字の左端,上端
             _T("PRESS SPACE TO HIT!"),
-            GetColor(240, 250, 255)
+            GetColor(240, 250, 255)     // 白に近い色
         );
     }
 }
 
-// チャンス氷選択画面
+// チャンス氷の選択画面
 void Window::DrawChanceChoice()
 {
-    // 画面中央のパネル
-    DrawPanel(120, 200, 680, 420, 230);
+    DrawPanel(180, 250, 820, 550, 230);
 
     Center(
-        230,
+        290,
         _T("CHANCE ICE!"),
         GetColor(255, 255, 255)
     );
 
     Center(
-        280,
-        _T("GET SKIP TICKET? ENTER = YES"),
+        360,
+        _T("ENTER = GET SKIP TICKET"),
         GetColor(230, 245, 255)
     );
 
     Center(
-        330,
+        430,
         _T("CLICK RIGHT SIDE = NO"),
         GetColor(230, 245, 255)
     );
 }
 
-// ゲームオーバー画面
+// ゲームオーバー
 void Window::DrawGameOver(int winner)
 {
-    // 背景
     DrawBackground();
 
-    // メッセージ部分のパネル
-    DrawPanel(140, 180, 660, 400, 210);
+    DrawPanel(180, 250, 820, 550, 210);
 
     if (winner == -2)
     {
         Center(
-            260,
+            330,
             _T("EXIT"),
             GetColor(255, 255, 255)
         );
@@ -350,7 +382,7 @@ void Window::DrawGameOver(int winner)
     else if (winner == 0)
     {
         Center(
-            230,
+            320,
             _T("PLAYER 1 WINS!"),
             GetColor(255, 255, 255)
         );
@@ -358,14 +390,14 @@ void Window::DrawGameOver(int winner)
     else
     {
         Center(
-            230,
+            320,
             _T("PLAYER 2 / CPU WINS!"),
             GetColor(255, 255, 255)
         );
     }
 
     Center(
-        330,
+        430,
         _T("PRESS ENTER TO RETURN TO TITLE"),
         GetColor(230, 245, 255)
     );

@@ -5,9 +5,13 @@
 
 int main()
 {
-    // ウィンドウ設定
+    // フルスクリーン表示
     ChangeWindowMode(FALSE);
+
+    // ゲームの内部画面サイズ
     SetGraphMode(1000, 800, 32);
+
+    // タイトル
     SetMainWindowText(_T("DON'T DROP THE PENGUIN!"));
 
     // DxLib初期化
@@ -16,10 +20,10 @@ int main()
         return -1;
     }
 
-    // マウスカーソルを表示
+    // マウス表示
     SetMouseDispFlag(TRUE);
 
-    // 裏画面に描画
+    // 裏画面描画
     SetDrawScreen(DX_SCREEN_BACK);
 
     // ゲーム初期化
@@ -38,7 +42,6 @@ int main()
         ScreenFlip();
     }
 
-    // DxLib終了
     DxLib_End();
 
     return 0;
