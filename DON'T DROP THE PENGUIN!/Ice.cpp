@@ -25,7 +25,9 @@ const int ROW_OFFSET_X[BOARD_ROWS] =
 // ƒRƒ“ƒXƒgƒ‰ƒNƒ^
 Ice::Ice()
     : iceWhiteHandle(-1),
-    iceBlueHandle(-1)
+    iceBlueHandle(-1),
+    iceWhiteCrackedHandle(-1),
+    iceBlueCrackedHandle(-1)
 {
     for (int i = 0; i < TILE_COUNT; i++)
     {
@@ -41,6 +43,13 @@ void Ice::Init()
     // •X‰æ‘œ‚ð“Ç‚Ýž‚Þ
     iceWhiteHandle = LoadGraph(_T("images/ice_white.png"));
     iceBlueHandle = LoadGraph(_T("images/ice_blue.png"));
+
+    // ‚Ð‚ÑŠ„‚ê‚½•X‰æ‘œ‚ð“Ç‚Ýž‚Þ
+    iceWhiteCrackedHandle =
+        LoadGraph(_T("images/ice_white_cracked.png"));
+
+    iceBlueCrackedHandle =
+        LoadGraph(_T("images/ice_blue_cracked.png"));
 
     // •X‚Ìó‘Ô‚ð‰Šú‰»
     for (int i = 0; i < TILE_COUNT; i++)
@@ -79,13 +88,29 @@ void Ice::Draw(int selectedIndex)
         // ”’‚¢•X‚ÆÂ‚¢•X‚ðŒðŒÝ‚ÉŽg‚¤
         int imageHandle;
 
-        if (i % 2 == 0)
+        // ‘Ï‹v’l‚ª80ˆÈ‰º‚È‚ç‚Ð‚ÑŠ„‚ê‰æ‘œ
+        if (tiles[i].durability <= 80)
         {
-            imageHandle = iceBlueHandle;
+            if (i % 2 == 0)
+            {
+                imageHandle = iceBlueCrackedHandle;
+            }
+            else
+            {
+                imageHandle = iceWhiteCrackedHandle;
+            }
         }
+        // ‘Ï‹v’l‚ª100‚È‚ç’Êí‰æ‘œ
         else
         {
-            imageHandle = iceWhiteHandle;
+            if (i % 2 == 0)
+            {
+                imageHandle = iceBlueHandle;
+            }
+            else
+            {
+                imageHandle = iceWhiteHandle;
+            }
         }
 
         // •X‚Ì‰æ‘œ‚ð•`‰æ
@@ -127,33 +152,22 @@ void Ice::Draw(int selectedIndex)
         // ƒ`ƒƒƒ“ƒX•X‚ÌƒLƒ‰ƒLƒ‰‰‰o
         if (tiles[i].chance)
         {
-            int sparkleColor = GetColor(255, 255, 180);
+            // ƒLƒ‰ƒLƒ‰‰æ‘œ‚ð“Ç‚Ýž‚Þi‰‰ñ‚Ì‚Ýj
+            static int sparkleHandle =
+                LoadGraph(_T("images/chance_sparkle.png"));
 
-            DrawLine(
-                centerX - 18,
-                centerY - 18,
-                centerX + 18,
-                centerY + 18,
-                sparkleColor,
-                3
-            );
-
-            DrawLine(
-                centerX - 18,
-                centerY + 18,
-                centerX + 18,
-                centerY - 18,
-                sparkleColor,
-                3
-            );
-
-            DrawCircle(
-                centerX,
-                centerY,
-                5,
-                GetColor(255, 255, 255),
-                TRUE
-            );
+            // ƒLƒ‰ƒLƒ‰‰æ‘œ‚ð•X‚Ì’†‰›‚É•`‰æ
+            if (sparkleHandle != -1)
+            {
+                DrawExtendGraph(
+                    centerX - 36,
+                    centerY - 36,
+                    centerX + 36,
+                    centerY + 36,
+                    sparkleHandle,
+                    TRUE
+                );
+            }
         }
 
         // ‘I‘ð’†‚Ì•X‚ðˆÍ‚Þ

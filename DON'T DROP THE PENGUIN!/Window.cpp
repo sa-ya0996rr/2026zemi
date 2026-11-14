@@ -224,26 +224,28 @@ void Window::DrawPlay(
     // P1のターン
     if (current == 0)
     {
-        DrawFormatString(
-            650, 740,
-            GetColor(240, 250, 255),
-            _T("P1 TICKET: %s"),
-            players[0].HasTicket()
-            ? _T("YES")
-            : _T("NO")
-        );
+        // P1がチケットを持っているときだけ表示
+        if (players[0].HasTicket())
+        {
+            DrawString(
+                650, 740,
+                _T("P1 TICKET: YES"),
+                GetColor(240, 250, 255)
+            );
+        }
     }
     // P2 / CPUのターン
     else
     {
-        DrawFormatString(
-            650, 675,
-            GetColor(240, 250, 255),
-            _T("P2 TICKET: %s"),
-            players[1].HasTicket()
-            ? _T("YES")
-            : _T("NO")
-        );
+        // P2がチケットを持っているときだけ表示
+        if (players[1].HasTicket())
+        {
+            DrawString(
+                650, 740,
+                _T("P2 TICKET: YES"),
+                GetColor(240, 250, 255)
+            );
+        }
     }
 
     // チャージインパクト
@@ -252,13 +254,13 @@ void Window::DrawPlay(
     if (charge.IsRunning())
     {
         // チャージインパクトの背景パネル
-        DrawPanel(300, 630, 1000, 710, 220); // 左端のX座標,上側のY座標,右側のX座標,下端のY座標,パネルの透明度
+        DrawPanel(150, 630, 850, 710, 220); // 左端のX座標,上側のY座標,右側のX座標,下端のY座標,パネルの透明度
 
         // ゲージの最大値
         const int MAX_GAUGE = 1000;
 
         // ゲージの中央位置
-        const int CENTER_X = 650;
+        const int CENTER_X = 500;
 
         // ゲージの最大幅（左右それぞれ）
         const int MAX_WIDTH = 320;
@@ -331,11 +333,20 @@ void Window::DrawPlay(
             TRUE
         );
 
+        const TCHAR* text = _T("PRESS SPACE TO HIT!");
+
+        int textWidth = GetDrawStringWidth(
+            text,
+            (int)_tcslen(text),
+            30
+        );
+
         // 説明文字
         DrawString(
-            330, 645,                   // 文字の左端,上端
-            _T("PRESS SPACE TO HIT!"),
-            GetColor(240, 250, 255)     // 白に近い色
+            (1000 - textWidth) / 2,
+            645,
+            text,
+            GetColor(240, 250, 255) // 白に近い色
         );
     }
 }

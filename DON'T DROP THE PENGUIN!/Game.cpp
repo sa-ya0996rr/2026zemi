@@ -24,31 +24,56 @@ Game::Game()
 {
 }
 
+// 終了処理
+Game::~Game()
+{
+    // ペンギン画像の解放
+    penguins[0].Release();
+
+    // 背景画像の解放
+    if (backgroundHandle != -1)
+    {
+        DeleteGraph(backgroundHandle);
+        backgroundHandle = -1;
+    }
+}
+
 // 初期化
 void Game::Init()
 {
+    // 背景画像の読み込み
     backgroundHandle = LoadGraph(_T("images/background.png"));
 
+    // 氷の初期化
     ice.Init();
 
+    // ペンギン画像の読み込み
+    penguins[0].Init();
+
+    // ペンギンの初期位置
     penguins[0].SetPosition(2, 5);
 }
 
 // 試合開始
 void Game::StartMatch()
 {
+    // 氷を初期状態に戻す
     ice.Init();
 
+    // ペンギンの初期位置
     penguins[0].SetPosition(2, 5);
 
+    // プレイヤー情報をリセット
     players[0].Reset();
 
+    // 試合情報をリセット
     currentPlayer = 0;
     turn = 0;
     winner = -1;
     pendingChance = false;
     pendingTile = -1;
 
+    // ゲーム画面へ移動
     scene = SCENE_PLAY;
 }
 
@@ -395,6 +420,7 @@ void Game::Draw()
 
         ice.Draw(charge.IsRunning() ? pendingTile : -1);
 
+        // ペンギン画像を描画
         penguins[0].Draw(ice, 0);
 
         window.DrawPlay(currentPlayer, mode, players, turn, charge);

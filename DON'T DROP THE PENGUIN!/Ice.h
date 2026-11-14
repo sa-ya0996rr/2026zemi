@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "DxLib.h"
@@ -47,8 +46,13 @@ public:
 private:
     IceTile tiles[TILE_COUNT];
 
+    // ’Êí‚Ì•X‰æ‘œ
     int iceWhiteHandle;
     int iceBlueHandle;
+
+    // ‚Ğ‚ÑŠ„‚ê‚½•X‰æ‘œ
+    int iceWhiteCrackedHandle;
+    int iceBlueCrackedHandle;
 
     bool HasStablePath(int index) const;
 
